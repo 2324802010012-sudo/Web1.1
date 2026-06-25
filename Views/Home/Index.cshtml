@@ -1,0 +1,90 @@
+﻿@{
+    ViewData["Title"] = "Trang chủ";
+}
+
+<header class="site-header">
+    <a class="brand" asp-controller="Home" asp-action="Index" aria-label="StudyConnect trang chủ">
+        <span class="brand-icon"><span></span><span></span><span></span></span>
+        <span><strong>StudyConnect</strong><small>Học 1-1 • Kết nối • Phát triển</small></span>
+    </a>
+
+    <nav class="main-nav" aria-label="Điều hướng chính">
+        <a class="active" asp-controller="Home" asp-action="Index">Trang chủ</a>
+        <a href="#hoc-1-1">Học 1-1</a>
+        <a href="#clb">Cộng đồng CLB</a>
+        <a href="#tai-lieu">Tài liệu</a>
+        <a href="#hoat-dong">Hoạt động</a>
+        <a href="#bang-xep-hang">Bảng xếp hạng</a>
+    </nav>
+
+    <div class="header-actions">
+        <label class="search-box" aria-label="Tìm kiếm"><input type="search" placeholder="Tìm kiếm..." /><span>⌕</span></label>
+        <a class="btn btn-light" href="/TaiKhoans">Đăng nhập</a>
+        <a class="btn btn-primary" href="/TaiKhoans/Create">Đăng ký</a>
+    </div>
+</header>
+
+<main>
+    <section class="hero-section" id="hoc-1-1">
+        <div class="hero-bg-pattern"></div>
+        <div class="hero-content">
+            <div class="hero-copy">
+                <p class="pill">Nền tảng hỗ trợ học tập dành cho sinh viên</p>
+                <h1>Hỗ trợ <span>học tập 1-1</span><br />Kết nối <span>cộng đồng CLB</span></h1>
+                <p class="hero-text">Tìm người hướng dẫn phù hợp, học tập hiệu quả 1-1 và tham gia cộng đồng câu lạc bộ để phát triển kỹ năng, chia sẻ tri thức và cùng nhau tiến bộ.</p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary btn-large" href="/YeuCauHoTroHocTaps/Create">Tạo yêu cầu hỗ trợ 1-1</a>
+                    <a class="btn btn-light btn-large" href="#clb">Khám phá CLB</a>
+                </div>
+                <div class="trust-row">
+                    <span>Ghép nối thông minh</span><span>Lịch học linh hoạt</span><span>Đánh giá & uy tín</span><span>Cộng đồng đáng tin cậy</span>
+                </div>
+            </div>
+            <div class="hero-media">
+                <img src="~/images/home-hero-students.png" alt="Nhóm sinh viên cùng học tập qua StudyConnect" />
+                <div class="floating-card mentor-card"><span class="avatar"></span><strong>Mentor phù hợp</strong><small>4.9/5</small></div>
+                <div class="floating-icon calendar">▣</div>
+                <div class="floating-icon people">♙</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats-panel" aria-label="Thống kê StudyConnect">
+        <div class="stat-item"><span class="stat-icon">▱</span><div><strong>2.500+</strong><small>Sinh viên</small></div></div>
+        <div class="stat-item"><span class="stat-icon">♙</span><div><strong>480+</strong><small>Mentor</small></div></div>
+        <div class="stat-item"><span class="stat-icon">▤</span><div><strong>1.200+</strong><small>Buổi học đã diễn ra</small></div></div>
+        <div class="stat-item"><span class="stat-icon">☆</span><div><strong>4.8/5</strong><small>Đánh giá trung bình</small></div></div>
+        <div class="stat-item"><span class="stat-icon">◇</span><div><strong>50+</strong><small>CLB đang hoạt động</small></div></div>
+    </section>
+
+    <section class="section-block" aria-labelledby="features-title">
+        <div class="section-heading"><span></span><h2 id="features-title">Tính năng nổi bật</h2><span></span></div>
+        <div class="feature-grid">
+            <article class="feature-card"><span>◎</span><h3>Học tập 1-1</h3><p>Tạo yêu cầu, hệ thống gợi ý mentor phù hợp với nhu cầu của bạn.</p></article>
+            <article class="feature-card"><span>♙</span><h3>Gợi ý thông minh</h3><p>Phân tích chuyên môn, lịch rảnh, uy tín và đánh giá để đề xuất chính xác.</p></article>
+            <article class="feature-card"><span>▦</span><h3>Sinh lịch tự động</h3><p>So khớp lịch rảnh của cả hai và đề xuất thời gian học tối ưu nhất.</p></article>
+            <article class="feature-card"><span>▣</span><h3>Báo cáo buổi học</h3><p>Mentor lập báo cáo, lưu trữ lịch sử học tập và theo dõi tiến độ.</p></article>
+            <article class="feature-card"><span>☆</span><h3>Đánh giá & uy tín</h3><p>Đánh giá sau mỗi buổi học, xây dựng điểm uy tín và xếp hạng minh bạch.</p></article>
+            <article class="feature-card"><span>♣</span><h3>Cộng đồng CLB</h3><p>Tham gia CLB, chia sẻ tài liệu, tham gia hoạt động và kết nối bạn bè.</p></article>
+        </div>
+    </section>
+
+    <section class="club-section" id="clb">
+        <div class="club-intro">
+            <h2>Cộng đồng câu lạc bộ</h2>
+            <p>Tham gia các CLB để học hỏi, chia sẻ tài liệu, tham gia hoạt động và phát triển bản thân.</p>
+            <a class="btn btn-primary" href="/CauLacBos">Xem tất cả CLB →</a>
+        </div>
+        <div class="club-grid">
+            <article class="club-card"><span class="club-icon code">&lt;/&gt;</span><h3>CLB Lập trình</h3><small>680 thành viên</small><p>Nơi chia sẻ kiến thức lập trình, thực hành dự án và tham gia cuộc thi công nghệ.</p><a href="/CauLacBos">Xem chi tiết →</a></article>
+            <article class="club-card"><span class="club-icon shield">⬟</span><h3>CLB An toàn thông tin</h3><small>420 thành viên</small><p>Cộng đồng đam mê bảo mật, nghiên cứu và chia sẻ về an toàn thông tin.</p><a href="/CauLacBos">Xem chi tiết →</a></article>
+            <article class="club-card"><span class="club-icon ai">AI</span><h3>CLB Trí tuệ nhân tạo</h3><small>350 thành viên</small><p>Khám phá AI, Machine Learning và các xu hướng công nghệ mới nhất.</p><a href="/CauLacBos">Xem chi tiết →</a></article>
+            <article class="club-card"><span class="club-icon db">◎</span><h3>CLB Cơ sở dữ liệu</h3><small>290 thành viên</small><p>Trao đổi kiến thức CSDL, thiết kế, tối ưu và xử lý dữ liệu.</p><a href="/CauLacBos">Xem chi tiết →</a></article>
+        </div>
+    </section>
+
+    <section class="mentor-cta" id="bang-xep-hang">
+        <div><strong>♙ Bạn là sinh viên muốn trở thành mentor?</strong><span>Đăng ký làm người hướng dẫn để chia sẻ kiến thức và giúp đỡ các bạn cùng học tập.</span></div>
+        <a class="btn btn-outline" href="/DangKyHuongDans/Create">Đăng ký làm mentor</a>
+    </section>
+</main>
