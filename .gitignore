@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local/editor files
+.vscode/
+.idea/
+
+# OS files
+Thumbs.db
+Desktop.ini
