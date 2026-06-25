@@ -1,0 +1,60 @@
+@{
+    ViewData["Title"] = "Dashboard Chủ nhiệm CLB";
+}
+
+<main class="role-dashboard">
+    <aside class="role-sidebar">
+        <a class="role-brand" asp-controller="Home" asp-action="Index">StudyConnect</a>
+        <p>Chủ nhiệm CLB</p>
+        <a class="active" href="#tong-quan">Tổng quan</a>
+        <a href="#quan-ly-clb">Quản lý CLB</a>
+        <a href="#bau-cu">Bầu Phó chủ nhiệm</a>
+        <a href="#xac-nhan-mentor">Xác nhận mentor CLB</a>
+        <a asp-controller="TaiKhoans" asp-action="Profile">Hồ sơ cá nhân</a>
+    </aside>
+
+    <section class="role-main">
+        <header class="role-header">
+            <div>
+                <p class="eyebrow">Đúng vai trò: Chủ nhiệm CLB</p>
+                <h1>Quản lý cộng đồng CLB</h1>
+                <span>Điều phối thành viên, hoạt động, tài liệu, xác nhận uy tín CLB và tổ chức bầu Phó chủ nhiệm.</span>
+            </div>
+            <form asp-controller="TaiKhoans" asp-action="Logout" method="post"><button class="btn btn-outline">Đăng xuất</button></form>
+        </header>
+
+        <section class="role-stats" id="tong-quan">
+            <article><small>CLB phụ trách</small><strong>@ViewBag.CauLacBo</strong></article>
+            <article><small>Thành viên</small><strong>@ViewBag.ThanhVien</strong></article>
+            <article><small>Hoạt động</small><strong>@ViewBag.HoatDong</strong></article>
+            <article><small>Tài liệu CLB</small><strong>@ViewBag.TaiLieu</strong></article>
+            <article><small>Đợt bầu cử</small><strong>@ViewBag.DotBauCu</strong></article>
+        </section>
+
+        <section class="role-panel" id="quan-ly-clb">
+            <div class="role-panel-head"><h2>Chức năng quản lý CLB</h2><a asp-controller="Home" asp-action="CauLacBo">Mở trang CLB</a></div>
+            <div class="role-feature-grid">
+                <article><span>01</span><h3>Quản lý thông tin CLB</h3><p>Cập nhật mô tả, trạng thái, hoạt động và thông tin hiển thị cộng đồng.</p></article>
+                <article><span>02</span><h3>Duyệt yêu cầu tham gia</h3><p>Kiểm tra thành viên, vai trò nội bộ và trạng thái tham gia CLB.</p></article>
+                <article><span>03</span><h3>Đăng hoạt động</h3><p>Tạo workshop, sự kiện, lịch sinh hoạt hoặc thông báo tuyển thành viên.</p></article>
+                <article><span>04</span><h3>Đăng tài liệu CLB</h3><p>Chia sẻ tài liệu chung phục vụ học tập và hoạt động cộng đồng.</p></article>
+            </div>
+        </section>
+
+        <section class="role-panel" id="bau-cu">
+            <div class="role-panel-head"><h2>Bầu Phó chủ nhiệm CLB</h2></div>
+            <div class="role-feature-grid compact">
+                <article><span>DC</span><h3>Tạo đợt đề cử</h3><p>Thiết lập thời gian bắt đầu/kết thúc cho đề cử và bỏ phiếu.</p></article>
+                <article><span>UV</span><h3>Theo dõi ứng viên</h3><p>Hệ thống chỉ nhận ứng viên/thành viên đề cử hợp lệ trong CLB.</p></article>
+                <article><span>KQ</span><h3>Cập nhật kết quả</h3><p>Sau khi hệ thống tổng hợp phiếu, Chủ nhiệm cập nhật vai trò Phó chủ nhiệm.</p></article>
+            </div>
+        </section>
+
+        <section class="role-panel" id="xac-nhan-mentor">
+            <div class="role-panel-head"><h2>Xác nhận sinh viên CLB đăng ký mentor</h2><strong>@ViewBag.CanXacNhanMentor hồ sơ chờ</strong></div>
+            <div class="role-note-list">
+                <p>Chủ nhiệm CLB chỉ xác nhận mức độ tham gia, uy tín và đóng góp trong CLB. Bước duyệt chuyên môn vẫn thuộc Giảng viên/Cố vấn.</p>
+            </div>
+        </section>
+    </section>
+</main>

@@ -1,0 +1,163 @@
+﻿@{
+    ViewData["Title"] = "Admin Dashboard";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <title>Admin - StudyConnect</title>
+    <link rel="stylesheet" href="~/css/admin.css" />
+</head>
+<body>
+    <div class="admin-layout">
+
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">🎓</div>
+                <div>
+                    <h2>StudyConnect</h2>
+                    <p>Học 1-1 • Kết nối • Phát triển</p>
+                </div>
+            </div>
+
+            <nav>
+                <a class="active" href="/Admin">🏠 Tổng quan</a>
+                <a href="/TaiKhoans">👥 Người dùng</a>
+                <a href="#">🔐 Vai trò & quyền hạn</a>
+                <a href="#">📋 Yêu cầu đăng ký</a>
+                <a href="/LinhVucHocTaps">📚 Lĩnh vực học tập</a>
+                <a href="/CauLacBos">👨‍👩‍👧‍👦 CLB & Cộng đồng</a>
+                <a href="#">📝 Nội dung</a>
+                <a href="#">📊 Báo cáo & Thống kê</a>
+                <a href="#">⚙️ Cấu hình hệ thống</a>
+            </nav>
+
+            <div class="support">
+                <b>🎧 Trung tâm hỗ trợ</b>
+                <p>Liên hệ hỗ trợ hệ thống</p>
+            </div>
+        </aside>
+
+        <main class="main">
+            <header class="topbar">
+                <h1>Tổng quan</h1>
+
+                <div class="top-actions">
+                    <input type="text" placeholder="Tìm kiếm..." />
+                    <span class="bell">🔔</span>
+                    <div class="admin-user">
+                        <div class="avatar">A</div>
+                        <div>
+                            <b>Admin</b>
+                            <p>Quản trị viên</p>
+                        </div>
+                    </div>
+                    <form class="admin-logout-form" asp-controller="TaiKhoans" asp-action="Logout" method="post">
+                        <button type="submit">Đăng xuất</button>
+                    </form>
+                </div>
+            </header>
+
+            <section class="cards">
+                <div class="card blue">
+                    <span>👥</span>
+                    <p>Tổng người dùng</p>
+                    <h2>@ViewBag.TongNguoiDung</h2>
+                    <small>+ 12.5% so với kỳ trước</small>
+                </div>
+
+                <div class="card green">
+                    <span>🎓</span>
+                    <p>Sinh viên</p>
+                    <h2>@ViewBag.SinhVien</h2>
+                    <small>+ 10.3% so với kỳ trước</small>
+                </div>
+
+                <div class="card purple">
+                    <span>⭐</span>
+                    <p>Mentor</p>
+                    <h2>@ViewBag.Mentor</h2>
+                    <small>+ 8.7% so với kỳ trước</small>
+                </div>
+
+                <div class="card orange">
+                    <span>📅</span>
+                    <p>Buổi học đã diễn ra</p>
+                    <h2>@ViewBag.BuoiHoc</h2>
+                    <small>+ 15.2% so với kỳ trước</small>
+                </div>
+
+                <div class="card blue">
+                    <span>🛡️</span>
+                    <p>CLB hoạt động</p>
+                    <h2>@ViewBag.CLB</h2>
+                    <small>+ 7.0% so với kỳ trước</small>
+                </div>
+
+                <div class="card red">
+                    <span>📄</span>
+                    <p>Yêu cầu đang xử lý</p>
+                    <h2>@ViewBag.YeuCau</h2>
+                    <small class="down">- 4.1% so với kỳ trước</small>
+                </div>
+            </section>
+
+            <section class="dashboard-grid">
+                <div class="panel large">
+                    <h3>Thống kê buổi học</h3>
+                    <div class="chart-placeholder">
+                        <div class="line"></div>
+                        <p>Biểu đồ buổi học theo thời gian</p>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Phân bổ người dùng theo vai trò</h3>
+                    <div class="donut">12.568<br><small>Tổng</small></div>
+                    <ul class="legend">
+                        <li><span class="dot blue-dot"></span>Sinh viên thường</li>
+                        <li><span class="dot green-dot"></span>Sinh viên CLB</li>
+                        <li><span class="dot purple-dot"></span>Mentor</li>
+                        <li><span class="dot orange-dot"></span>Giảng viên</li>
+                    </ul>
+                </div>
+
+                <div class="panel">
+                    <h3>Yêu cầu đang chờ xử lý</h3>
+                    <table>
+                        <tr><th>Loại yêu cầu</th><th>Số lượng</th></tr>
+                        <tr><td>Đăng ký làm mentor</td><td>45</td></tr>
+                        <tr><td>Xác nhận CLB</td><td>28</td></tr>
+                        <tr><td>Duyệt chuyên môn</td><td>32</td></tr>
+                        <tr><td>Đề cử Phó chủ nhiệm</td><td>23</td></tr>
+                    </table>
+                    <button>Xem tất cả yêu cầu</button>
+                </div>
+
+                <div class="panel">
+                    <h3>Hoạt động mới nhất</h3>
+                    <ul class="activity">
+                        <li>Nguyễn Văn An đã đăng ký làm mentor</li>
+                        <li>CLB AI Club tạo hoạt động mới</li>
+                        <li>Trần Thị Mai hoàn thành buổi học</li>
+                        <li>Phạm Quốc Bảo đã được duyệt mentor</li>
+                    </ul>
+                </div>
+
+                <div class="panel">
+                    <h3>Thống kê theo lĩnh vực học tập</h3>
+                    <table>
+                        <tr><th>Lĩnh vực</th><th>Mentor</th><th>Yêu cầu</th></tr>
+                        <tr><td>Lập trình</td><td>568</td><td>1.124</td></tr>
+                        <tr><td>Cơ sở dữ liệu</td><td>196</td><td>432</td></tr>
+                        <tr><td>AI / Machine Learning</td><td>162</td><td>384</td></tr>
+                        <tr><td>An toàn thông tin</td><td>188</td><td>356</td></tr>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

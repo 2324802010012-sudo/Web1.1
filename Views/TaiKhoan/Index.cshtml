@@ -1,119 +1,58 @@
-@model IEnumerable<StudyConnect.Models.TaiKhoan>
-
+﻿@model IEnumerable<StudyConnect.Models.TaiKhoan>
+@using StudyConnect.ViewModels
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Quản lý tài khoản";
 }
 
-<h1>Index</h1>
+<section class="admin-page">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">Quản trị hệ thống</p>
+            <h1>Quản lý tài khoản</h1>
+        </div>
+        <a class="btn btn-primary" asp-action="Create">Tạo tài khoản</a>
+    </div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.HoTen)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Email)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.MatKhau)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.VaiTro)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.SoDienThoai)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.AnhDaiDien)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.TrangThai)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.NgayTao)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.GiangVien)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.HoatDongClbs)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.LichRanhs)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.NguoiHuongDan)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.SinhVien)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.TaiLieuClbs)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ThongBaos)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(model => item.HoTen)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Email)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.MatKhau)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.VaiTro)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.SoDienThoai)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.AnhDaiDien)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.TrangThai)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.NgayTao)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.GiangVien)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.HoatDongClbs)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.LichRanhs)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.NguoiHuongDan)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.SinhVien)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.TaiLieuClbs)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.ThongBaos)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.MaTaiKhoan">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.MaTaiKhoan">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.MaTaiKhoan">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+    @if (TempData["SuccessMessage"] is string successMessage)
+    {
+        <div class="alert success">@successMessage</div>
+    }
+    @if (TempData["ErrorMessage"] is string errorMessage)
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <div class="table-card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Họ tên</th>
+                    <th>Email</th>
+                    <th>Vai trò</th>
+                    <th>Điện thoại</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày tạo</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td><strong>@item.HoTen</strong></td>
+                    <td>@item.Email</td>
+                    <td><span class="role-badge">@AccountRoles.DisplayName(item.VaiTro)</span></td>
+                    <td>@(item.SoDienThoai ?? "-")</td>
+                    <td>@(item.TrangThai ?? "-")</td>
+                    <td>@item.NgayTao?.ToString("dd/MM/yyyy")</td>
+                    <td class="table-actions">
+                        <a asp-action="Details" asp-route-id="@item.MaTaiKhoan">Chi tiết</a>
+                        <a asp-action="Edit" asp-route-id="@item.MaTaiKhoan">Sửa</a>
+                        <a class="danger" asp-action="Delete" asp-route-id="@item.MaTaiKhoan">Xóa</a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>

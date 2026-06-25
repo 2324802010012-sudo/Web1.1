@@ -10,17 +10,24 @@
 
     <nav class="main-nav" aria-label="Điều hướng chính">
         <a class="active" asp-controller="Home" asp-action="Index">Trang chủ</a>
-        <a href="#hoc-1-1">Học 1-1</a>
-        <a href="#clb">Cộng đồng CLB</a>
-        <a href="#tai-lieu">Tài liệu</a>
-        <a href="#hoat-dong">Hoạt động</a>
-        <a href="#bang-xep-hang">Bảng xếp hạng</a>
+        <a asp-controller="Home" asp-action="Hoc11">Học 1-1</a>
+        <a asp-controller="Home" asp-action="CauLacBo">Cộng đồng CLB</a>
     </nav>
 
     <div class="header-actions">
         <label class="search-box" aria-label="Tìm kiếm"><input type="search" placeholder="Tìm kiếm..." /><span>⌕</span></label>
-        <a class="btn btn-light" href="/TaiKhoans">Đăng nhập</a>
-        <a class="btn btn-primary" href="/TaiKhoans/Create">Đăng ký</a>
+        @if (Context.Session.GetInt32("UserId").HasValue)
+        {
+            <a class="btn btn-light" href="/TaiKhoans/Profile">Hồ sơ</a>
+            <form asp-controller="TaiKhoans" asp-action="Logout" method="post" class="inline-form">
+                <button class="btn btn-primary" type="submit">Đăng xuất</button>
+            </form>
+        }
+        else
+        {
+            <a class="btn btn-light" href="/TaiKhoans/Login">Đăng nhập</a>
+            <a class="btn btn-primary" href="/TaiKhoans/Create">Đăng ký</a>
+        }
     </div>
 </header>
 
@@ -66,6 +73,79 @@
             <article class="feature-card"><span>▣</span><h3>Báo cáo buổi học</h3><p>Mentor lập báo cáo, lưu trữ lịch sử học tập và theo dõi tiến độ.</p></article>
             <article class="feature-card"><span>☆</span><h3>Đánh giá & uy tín</h3><p>Đánh giá sau mỗi buổi học, xây dựng điểm uy tín và xếp hạng minh bạch.</p></article>
             <article class="feature-card"><span>♣</span><h3>Cộng đồng CLB</h3><p>Tham gia CLB, chia sẻ tài liệu, tham gia hoạt động và kết nối bạn bè.</p></article>
+        </div>
+    </section>
+
+    <section class="home-knowledge-rank" aria-labelledby="home-knowledge-title">
+        <div class="home-resource-panel">
+            <div class="home-panel-head">
+                <div>
+                    <p class="eyebrow">Tài liệu học tập</p>
+                    <h2 id="home-knowledge-title">Tài liệu nổi bật từ cộng đồng</h2>
+                </div>
+                <a asp-controller="Home" asp-action="Hoc11">Khám phá trong Học 1-1 →</a>
+            </div>
+            <div class="home-resource-grid">
+                <article><span class="doc-icon blue">PDF</span><h3>Giáo trình Python cơ bản</h3><p>Phạm Quốc Bảo • 1.2k lượt xem</p><small>Python</small></article>
+                <article><span class="doc-icon green">PDF</span><h3>Cấu trúc dữ liệu & giải thuật</h3><p>Trần Thị Mai • 856 lượt xem</p><small>CTDL & GT</small></article>
+                <article><span class="doc-icon purple">PPT</span><h3>Machine Learning cơ bản</h3><p>Vũ Hoàng Nam • 1.5k lượt xem</p><small>AI / ML</small></article>
+            </div>
+        </div>
+
+        <aside class="home-rank-panel">
+            <div class="home-panel-head compact">
+                <div>
+                    <p class="eyebrow">Xếp hạng</p>
+                    <h2>Mentor nổi bật</h2>
+                </div>
+            </div>
+            <div class="home-rank-list">
+                <div><span>1</span><strong>Phạm Quốc Bảo</strong><small>9.876 điểm</small></div>
+                <div><span>2</span><strong>Vũ Hoàng Nam</strong><small>9.235 điểm</small></div>
+                <div><span>3</span><strong>Trần Thị Mai</strong><small>8.742 điểm</small></div>
+            </div>
+        </aside>
+    </section>
+
+    <section class="home-mentor-leaderboard" aria-labelledby="home-mentor-rank-title">
+        <div class="home-panel-head">
+            <div>
+                <p class="eyebrow">Bảng xếp hạng</p>
+                <h2 id="home-mentor-rank-title">Mentor uy tín trong tháng</h2>
+            </div>
+            <a asp-controller="Home" asp-action="Hoc11">Xem mentor phù hợp →</a>
+        </div>
+        <div class="leaderboard-layout">
+            <div class="leaderboard-podium">
+                <article class="podium-card second">
+                    <span class="rank-badge">2</span>
+                    <strong>Vũ Hoàng Nam</strong>
+                    <small>Java • Spring Boot</small>
+                    <div class="rank-score">9.235 điểm</div>
+                    <p>87 đánh giá • 64 buổi hỗ trợ</p>
+                </article>
+                <article class="podium-card first">
+                    <span class="rank-badge">1</span>
+                    <strong>Phạm Quốc Bảo</strong>
+                    <small>Python • AI / ML</small>
+                    <div class="rank-score">9.876 điểm</div>
+                    <p>124 đánh giá • 68 buổi hỗ trợ</p>
+                </article>
+                <article class="podium-card third">
+                    <span class="rank-badge">3</span>
+                    <strong>Trần Thị Mai</strong>
+                    <small>C++ • CTDL & GT</small>
+                    <div class="rank-score">8.742 điểm</div>
+                    <p>76 đánh giá • 52 buổi hỗ trợ</p>
+                </article>
+            </div>
+            <div class="leaderboard-table">
+                <div class="leaderboard-head"><span>#</span><span>Mentor</span><span>Lĩnh vực</span><span>Đánh giá</span><span>Uy tín</span></div>
+                <div><span>4</span><strong>Lê Minh Châu</strong><small>Data Analysis</small><b>4.8/5</b><em>8.125</em></div>
+                <div><span>5</span><strong>Nguyễn Văn Tùng</strong><small>Web Development</small><b>4.8/5</b><em>7.893</em></div>
+                <div><span>6</span><strong>Đỗ Quang Huy</strong><small>AI / Machine Learning</small><b>4.7/5</b><em>7.562</em></div>
+                <div><span>7</span><strong>Trần Quốc Anh</strong><small>Backend Development</small><b>4.7/5</b><em>7.231</em></div>
+            </div>
         </div>
     </section>
 

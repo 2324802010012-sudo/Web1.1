@@ -1,114 +1,188 @@
-@model StudyConnect.Models.TaiKhoan
-
+﻿@using Microsoft.AspNetCore.Mvc.Rendering
+@model StudyConnect.ViewModels.RegisterViewModel
 @{
-    ViewData["Title"] = "Create";
+    var isAdminCreate = ViewBag.IsAdminCreate is bool value && value;
+    ViewData["Title"] = isAdminCreate ? "Tạo tài khoản" : "Đăng ký";
+    var roleOptions = ((IEnumerable<SelectListItem>)(ViewBag.RoleOptions ?? Enumerable.Empty<SelectListItem>())).ToList();
+    var showRoleSelect = isAdminCreate;
 }
 
-<h1>Create</h1>
+@section Styles {
+    <link rel="stylesheet" href="~/css/account.css" asp-append-version="true" />
+}
 
-<h4>TaiKhoan</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-            <div class="form-group">
-                <label asp-for="HoTen" class="control-label"></label>
-                <input asp-for="HoTen" class="form-control" />
-                <span asp-validation-for="HoTen" class="text-danger"></span>
+<section class="account-shell register-shell">
+    <div class="account-grid register-grid">
+        <div class="account-form-panel register-form-panel">
+            @if (isAdminCreate)
+            {
+                <a class="compact-home-link" asp-controller="TaiKhoans" asp-action="Index">← Quản lý tài khoản</a>
+            }
+            else
+            {
+                <a class="compact-home-link" asp-controller="Home" asp-action="Index">← Trang chủ</a>
+            }
+            <div class="account-brand-block compact-brand">
+                <span class="account-logo-mark"><span></span><span></span><span></span></span>
+                <div>
+                    <strong>StudyConnect</strong>
+                    <small>Học 1-1 • Kết nối • Phát triển</small>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label asp-for="Email" class="control-label"></label>
-                <input asp-for="Email" class="form-control" />
-                <span asp-validation-for="Email" class="text-danger"></span>
-            </div>
+            <header class="form-heading left-heading">
+                @if (isAdminCreate)
+                {
+                    <p class="eyebrow">Quản trị hệ thống</p>
+                    <h1>Tạo tài khoản mới</h1>
+                    <p>Admin cấp tài khoản và phân vai trò đúng phạm vi: Sinh viên, Mentor, Giảng viên/Cố vấn hoặc Chủ nhiệm CLB.</p>
+                }
+                else
+                {
+                    <p class="eyebrow">Đăng ký sinh viên</p>
+                    <h1>Tạo tài khoản sinh viên</h1>
+                    <p>Trang chủ chỉ đăng ký tài khoản Sinh viên để gửi yêu cầu học 1-1, kết nối mentor và tham gia CLB.</p>
+                }
+            </header>
 
-            <div class="form-group">
-                <label asp-for="MatKhau" class="control-label"></label>
-                <input asp-for="MatKhau" class="form-control" />
-                <span asp-validation-for="MatKhau" class="text-danger"></span>
-            </div>
+            <form asp-action="Create" method="post" class="account-form">
+                <div asp-validation-summary="ModelOnly" class="alert error"></div>
 
-            <div class="form-group">
-                <label asp-for="VaiTro" class="control-label"></label>
-                <input asp-for="VaiTro" class="form-control" />
-                <span asp-validation-for="VaiTro" class="text-danger"></span>
-            </div>
+                <label class="account-field">
+                    <span>Họ và tên</span>
+                    <span class="account-input">
+                        <span class="field-icon">ID</span>
+                        <input asp-for="HoTen" placeholder="Nhập họ và tên" autocomplete="name" />
+                    </span>
+                    <small asp-validation-for="HoTen"></small>
+                </label>
 
-            <div class="form-group">
-                <label asp-for="SoDienThoai" class="control-label"></label>
-                <input asp-for="SoDienThoai" class="form-control" />
-                <span asp-validation-for="SoDienThoai" class="text-danger"></span>
-            </div>
+                <div class="field-pair">
+                    <label class="account-field">
+                        <span>Email</span>
+                        <span class="account-input">
+                            <span class="field-icon">@@</span>
+                            <input asp-for="Email" placeholder="Nhập email" autocomplete="email" />
+                        </span>
+                        <small asp-validation-for="Email"></small>
+                    </label>
 
-            <div class="form-group">
-                <label asp-for="AnhDaiDien" class="control-label"></label>
-                <input asp-for="AnhDaiDien" class="form-control" />
-                <span asp-validation-for="AnhDaiDien" class="text-danger"></span>
-            </div>
+                    <label class="account-field">
+                        <span>Số điện thoại</span>
+                        <span class="account-input">
+                            <span class="field-icon">☎</span>
+                            <input asp-for="SoDienThoai" placeholder="Tùy chọn" autocomplete="tel" />
+                        </span>
+                        <small asp-validation-for="SoDienThoai"></small>
+                    </label>
+                </div>
 
-            <div class="form-group">
-                <label asp-for="TrangThai" class="control-label"></label>
-                <input asp-for="TrangThai" class="form-control" />
-                <span asp-validation-for="TrangThai" class="text-danger"></span>
-            </div>
+                <div class="field-pair">
+                    <label class="account-field">
+                        <span>Mật khẩu</span>
+                        <span class="account-input">
+                            <span class="field-icon">⌕</span>
+                            <input asp-for="MatKhau" placeholder="Ít nhất 8 ký tự" autocomplete="new-password" data-password-input />
+                            <button class="password-toggle" type="button" data-toggle-password aria-label="Hiện hoặc ẩn mật khẩu">◌</button>
+                        </span>
+                        <small asp-validation-for="MatKhau"></small>
+                    </label>
 
-            <div class="form-group">
-                <label asp-for="NgayTao" class="control-label"></label>
-                <input asp-for="NgayTao" class="form-control" />
-                <span asp-validation-for="NgayTao" class="text-danger"></span>
-            </div>
+                    <label class="account-field">
+                        <span>Xác nhận mật khẩu</span>
+                        <span class="account-input">
+                            <span class="field-icon">⌕</span>
+                            <input asp-for="XacNhanMatKhau" placeholder="Nhập lại mật khẩu" autocomplete="new-password" data-password-input />
+                            <button class="password-toggle" type="button" data-toggle-password aria-label="Hiện hoặc ẩn mật khẩu">◌</button>
+                        </span>
+                        <small asp-validation-for="XacNhanMatKhau"></small>
+                    </label>
+                </div>
 
-            <div class="form-group">
-                <label asp-for="GiangVien" class="control-label"></label>
-                <input asp-for="GiangVien" class="form-control" />
-                <span asp-validation-for="GiangVien" class="text-danger"></span>
-            </div>
+                @if (showRoleSelect)
+                {
+                    <label class="account-field">
+                        <span>Vai trò</span>
+                        <span class="account-input">
+                            <span class="field-icon">◎</span>
+                            <select asp-for="VaiTro" asp-items="roleOptions"></select>
+                        </span>
+                        <small asp-validation-for="VaiTro"></small>
+                    </label>
+                }
+                else
+                {
+                    <input type="hidden" asp-for="VaiTro" value="@StudyConnect.ViewModels.AccountRoles.SinhVien" />
+                    <div class="account-role-note">
+                        <strong>Vai trò: Sinh viên</strong>
+                        <span>Các vai trò Mentor, Giảng viên/Cố vấn và Chủ nhiệm CLB chỉ được cấp trong trang Admin hoặc sau quy trình duyệt.</span>
+                    </div>
+                }
 
-            <div class="form-group">
-                <label asp-for="HoatDongClbs" class="control-label"></label>
-                <input asp-for="HoatDongClbs" class="form-control" />
-                <span asp-validation-for="HoatDongClbs" class="text-danger"></span>
-            </div>
+                @if (!isAdminCreate)
+                {
+                    <label class="check-control terms-control">
+                        <input type="checkbox" required />
+                        <span>Tôi đồng ý với <a href="#">Điều khoản sử dụng</a> và <a href="#">Chính sách bảo mật</a></span>
+                    </label>
+                }
 
-            <div class="form-group">
-                <label asp-for="LichRanhs" class="control-label"></label>
-                <input asp-for="LichRanhs" class="form-control" />
-                <span asp-validation-for="LichRanhs" class="text-danger"></span>
-            </div>
+                <button class="account-primary" type="submit">@(isAdminCreate ? "Tạo tài khoản hệ thống" : "Đăng ký sinh viên")</button>
 
-            <div class="form-group">
-                <label asp-for="NguoiHuongDan" class="control-label"></label>
-                <input asp-for="NguoiHuongDan" class="form-control" />
-                <span asp-validation-for="NguoiHuongDan" class="text-danger"></span>
-            </div>
+                @if (!isAdminCreate)
+                {
+                    <div class="account-divider"><span>Hoặc đăng ký với</span></div>
 
-            <div class="form-group">
-                <label asp-for="SinhVien" class="control-label"></label>
-                <input asp-for="SinhVien" class="form-control" />
-                <span asp-validation-for="SinhVien" class="text-danger"></span>
-            </div>
+                    <div class="social-grid">
+                        <button class="social-button" type="button"><span class="google-mark">G</span> Google</button>
+                        <button class="social-button" type="button"><span class="facebook-mark">f</span> Facebook</button>
+                    </div>
+                }
+            </form>
 
-            <div class="form-group">
-                <label asp-for="TaiLieuClbs" class="control-label"></label>
-                <input asp-for="TaiLieuClbs" class="form-control" />
-                <span asp-validation-for="TaiLieuClbs" class="text-danger"></span>
-            </div>
+            @if (isAdminCreate)
+            {
+                <p class="switch-copy">Sau khi tạo, tài khoản sẽ xuất hiện trong danh sách quản lý để Admin sửa trạng thái hoặc vai trò.</p>
+            }
+            else
+            {
+                <p class="switch-copy">Đã có tài khoản? <a asp-action="Login">Đăng nhập ngay</a></p>
+            }
+        </div>
 
-            <div class="form-group">
-                <label asp-for="ThongBaos" class="control-label"></label>
-                <input asp-for="ThongBaos" class="form-control" />
-                <span asp-validation-for="ThongBaos" class="text-danger"></span>
+        <aside class="register-benefits">
+            <div class="benefit-summary">
+                <span class="summary-icon">▱</span>
+                <strong>@(isAdminCreate ? "Phân quyền đúng phạm vi" : "Học tập có người đồng hành")</strong>
+                <p>@(isAdminCreate ? "Admin là nơi duy nhất cấp vai trò hệ thống cho Giảng viên, Chủ nhiệm CLB và tài khoản đặc biệt." : "StudyConnect giúp sinh viên tìm mentor phù hợp, quản lý lịch học và xây dựng uy tín học tập.")</p>
             </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
+            <div class="benefit-list">
+                @if (isAdminCreate)
+                {
+                    <div><span>01</span><strong>Sinh viên</strong><small>Tự đăng ký từ trang chủ hoặc do Admin tạo.</small></div>
+                    <div><span>02</span><strong>Mentor / Giảng viên</strong><small>Được cấp sau quy trình duyệt chuyên môn.</small></div>
+                    <div><span>03</span><strong>Chủ nhiệm CLB</strong><small>Do Admin cấp quyền ban đầu để quản lý CLB.</small></div>
+                }
+                else
+                {
+                    <div><span>01</span><strong>Ghép nối 1-1</strong><small>Tìm mentor theo chuyên môn, lịch rảnh và đánh giá.</small></div>
+                    <div><span>02</span><strong>Cộng đồng CLB</strong><small>Tham gia hoạt động, chia sẻ tài liệu và kết nối bạn bè.</small></div>
+                    <div><span>03</span><strong>Theo dõi tiến độ</strong><small>Lưu báo cáo buổi học, đánh giá và lịch sử hỗ trợ.</small></div>
+                }
             </div>
-        </form>
+            <img src="~/images/home-hero-students.png" alt="Sinh viên StudyConnect" />
+        </aside>
     </div>
-</div>
+</section>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        document.querySelectorAll('[data-toggle-password]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const input = button.closest('.account-input')?.querySelector('[data-password-input]');
+                if (input) input.type = input.type === 'password' ? 'text' : 'password';
+            });
+        });
+    </script>
+}

@@ -1,0 +1,169 @@
+﻿@{
+    ViewData["Title"] = "Cộng đồng CLB";
+}
+
+<header class="site-header clb-topbar">
+    <a class="brand" asp-controller="Home" asp-action="Index" aria-label="StudyConnect trang chủ">
+        <span class="brand-icon"><span></span><span></span><span></span></span>
+        <span><strong>StudyConnect</strong><small>Học 1-1 • Kết nối • Phát triển</small></span>
+    </a>
+
+    <nav class="main-nav" aria-label="Điều hướng chính">
+        <a asp-controller="Home" asp-action="Index">Trang chủ</a>
+        <a asp-controller="Home" asp-action="Hoc11">Học 1-1</a>
+        <a class="active" asp-controller="Home" asp-action="CauLacBo">Cộng đồng CLB</a>
+    </nav>
+
+    <div class="header-actions">
+        <label class="search-box clb-search" aria-label="Tìm kiếm CLB"><input type="search" placeholder="Tìm kiếm CLB, hoạt động..." /><span>⌕</span></label>
+        @if (Context.Session.GetInt32("UserId").HasValue)
+        {
+            <a class="btn btn-light" href="/TaiKhoans/Profile">Hồ sơ</a>
+            <form asp-controller="TaiKhoans" asp-action="Logout" method="post" class="inline-form">
+                <button class="btn btn-primary" type="submit">Đăng xuất</button>
+            </form>
+        }
+        else
+        {
+            <a class="btn btn-light" href="/TaiKhoans/Login">Đăng nhập</a>
+            <a class="btn btn-primary" href="/TaiKhoans/Create">Đăng ký</a>
+        }
+    </div>
+</header>
+
+<main class="club-page">
+    <aside class="club-sidebar">
+        <div class="side-group">
+            <p>Cộng đồng CLB</p>
+            <a class="active" href="#kham-pha-clb"><span>◎</span>Khám phá CLB</a>
+            <a href="#clb-cua-toi"><span>✤</span>CLB của tôi</a>
+            <a href="#hoat-dong-clb"><span>▦</span>Hoạt động</a>
+            <a href="#bai-viet-clb"><span>▣</span>Bài viết</a>
+            <a href="#tai-lieu-clb"><span>▤</span>Tài liệu chung</a>
+            <a href="#bau-cu"><span>♙</span>Bầu Phó chủ nhiệm</a>
+        </div>
+        <div class="side-group">
+            <p>Quản lý CLB tham gia</p>
+            <a href="#thanh-vien"><span>♙</span>Thành viên</a>
+            <a href="#nhiem-vu"><span>◇</span>Nhiệm vụ của tôi</a>
+        </div>
+        <div class="side-group">
+            <p>Khác</p>
+            <a href="#xep-hang-clb"><span>♕</span>Bảng xếp hạng CLB</a>
+            <a href="#"><span>⚙</span>Cài đặt</a>
+        </div>
+        <div class="club-create-card">
+            <img src="~/images/club-community-hero.png" alt="Sinh viên tham gia cộng đồng CLB" />
+            <h3>Tạo hoặc tham gia CLB</h3>
+            <p>Kết nối cùng những người có chung đam mê.</p>
+            <a class="btn btn-outline" href="#">Tạo CLB ngay</a>
+        </div>
+    </aside>
+
+    <section class="club-content" id="kham-pha-clb">
+        <section class="club-hero-card">
+            <div>
+                <h1>Cộng đồng CLB - Kết nối đam mê</h1>
+                <p>Tham gia các câu lạc bộ, học hỏi kiến thức, chia sẻ tài liệu và cùng nhau phát triển kỹ năng.</p>
+                <a class="btn btn-light btn-large" href="#featured-clubs">Khám phá CLB</a>
+            </div>
+            <div class="club-hero-art">
+                <span class="paper-plane">➤</span>
+                <img src="~/images/club-community-hero.png" alt="Cộng đồng sinh viên StudyConnect" />
+            </div>
+        </section>
+
+        <section class="club-panel" id="featured-clubs">
+            <div class="club-panel-head"><h2>CLB nổi bật</h2><a href="#">Xem tất cả</a></div>
+            <div class="featured-club-grid">
+                <article><span class="club-logo ai-logo">AI</span><h3>AI Club</h3><small>Công nghệ</small><p>512 thành viên</p><p>Nghiên cứu và ứng dụng AI trong học tập và thực tế.</p><button>Tham gia</button></article>
+                <article><span class="club-logo code-logo">&lt;/&gt;</span><h3>Code Warriors</h3><small>Lập trình</small><p>684 thành viên</p><p>Nơi chia sẻ kiến thức lập trình, thuật toán và dự án thực tế.</p><button>Tham gia</button></article>
+                <article><span class="club-logo shield-logo">⬟</span><h3>Cyber Security Club</h3><small>An toàn thông tin</small><p>432 thành viên</p><p>Cùng nhau học tập và nâng cao kiến thức về ATTT.</p><button>Tham gia</button></article>
+                <article><span class="club-logo iot-logo">▣</span><h3>IoT & Embedded</h3><small>Kỹ thuật</small><p>298 thành viên</p><p>Đam mê IoT, nhúng và các dự án phần cứng sáng tạo.</p><button>Tham gia</button></article>
+                <article><span class="club-logo data-logo">▥</span><h3>Data Science Club</h3><small>Dữ liệu</small><p>367 thành viên</p><p>Phân tích dữ liệu, Machine Learning và trực quan hóa dữ liệu.</p><button>Tham gia</button></article>
+            </div>
+        </section>
+
+        <section class="club-panel category-panel">
+            <h2>Danh mục CLB</h2>
+            <div class="club-category-grid">
+                <article><span class="blue">▣</span><strong>Công nghệ</strong><small>16 CLB</small></article>
+                <article><span class="green">⚙</span><strong>Kỹ thuật</strong><small>12 CLB</small></article>
+                <article><span class="orange">◔</span><strong>Kinh tế</strong><small>8 CLB</small></article>
+                <article><span class="pink">◎</span><strong>Ngoại ngữ</strong><small>6 CLB</small></article>
+                <article><span class="red-soft">♥</span><strong>Thiện nguyện</strong><small>5 CLB</small></article>
+                <article><span class="purple">✿</span><strong>Nghệ thuật</strong><small>4 CLB</small></article>
+            </div>
+        </section>
+
+        <section class="club-panel election-panel" id="bau-cu">
+            <div class="club-panel-head">
+                <div>
+                    <p class="eyebrow">Sự kiện CLB</p>
+                    <h2>Bầu Phó ban chủ nhiệm CLB</h2>
+                </div>
+                <a href="#">Xem thể lệ</a>
+            </div>
+            <div class="election-layout">
+                <div class="election-main">
+                    <h3>Đợt bầu cử Phó ban chủ nhiệm nhiệm kỳ 2026</h3>
+                    <p>Thành viên đề cử, ứng cử và bỏ phiếu trực tuyến để chọn đại diện hỗ trợ điều phối hoạt động, tài liệu và kết nối mentor cho từng CLB.</p>
+                    <div class="election-actions">
+                        <a class="btn btn-primary" href="#">Ứng cử ngay</a>
+                        <a class="btn btn-outline" href="#">Xem ứng viên</a>
+                    </div>
+                    <div class="election-steps">
+                        <article><span>1</span><strong>Đề cử</strong><small>24/06 - 28/06</small></article>
+                        <article><span>2</span><strong>Trình bày kế hoạch</strong><small>29/06 - 01/07</small></article>
+                        <article><span>3</span><strong>Bỏ phiếu</strong><small>02/07 • 19:00</small></article>
+                    </div>
+                </div>
+                <div class="candidate-list">
+                    <article><span>PB</span><div><strong>Phạm Quốc Bảo</strong><small>AI Club • Điều phối học thuật</small></div></article>
+                    <article><span>TM</span><div><strong>Trần Thị Mai</strong><small>Code Warriors • Quản lý tài liệu</small></div></article>
+                    <article><span>MC</span><div><strong>Lê Minh Châu</strong><small>Data Science Club • Tổ chức sự kiện</small></div></article>
+                </div>
+            </div>
+        </section>
+
+        <section class="club-panel" id="hoat-dong-clb">
+            <div class="club-panel-head"><h2>Hoạt động mới nhất từ các CLB</h2><a href="#">Xem tất cả</a></div>
+            <div class="club-feed">
+                <div><span class="blue">▣</span><p><strong>AI Club</strong> đã đăng bài viết mới: “Ứng dụng ChatGPT trong học tập hiệu quả”</p><time>2 giờ trước</time></div>
+                <div><span class="green">◇</span><p><strong>Code Warriors</strong> đã chia sẻ tài liệu mới: “Giải thuật sắp xếp và tìm kiếm”</p><time>4 giờ trước</time></div>
+                <div><span class="purple">▣</span><p><strong>Cyber Security Club</strong> đã tạo sự kiện: “Workshop: Phòng chống tấn công mạng”</p><time>6 giờ trước</time></div>
+                <div><span class="orange">▦</span><p><strong>IoT & Embedded</strong> đã đăng thông báo tuyển thành viên mới</p><time>8 giờ trước</time></div>
+            </div>
+        </section>
+    </section>
+
+    <aside class="club-rightbar">
+        <section class="club-widget" id="clb-cua-toi">
+            <div class="club-panel-head"><h2>CLB của tôi</h2><a href="#">Xem tất cả</a></div>
+            <div class="my-club-list">
+                <div><span class="club-mini ai-logo">AI</span><strong>AI Club</strong><small>Thành viên</small></div>
+                <div><span class="club-mini code-logo">&lt;/&gt;</span><strong>Code Warriors</strong><small>Thành viên</small></div>
+                <div><span class="club-mini shield-logo">⬟</span><strong>Cyber Security Club</strong><small>Thành viên</small></div>
+            </div>
+        </section>
+
+        <section class="club-widget">
+            <div class="club-panel-head"><h2>Hoạt động sắp tới</h2><a href="#">Xem tất cả</a></div>
+            <div class="event-list">
+                <article><time>25<br />MAY</time><div><h3>Workshop: Build Chatbot với RAG</h3><p>AI Club</p><small>◷ 18:00 - 20:00</small></div><button>Tham gia</button></article>
+                <article><time>28<br />MAY</time><div><h3>Code Challenge: Algorithm Week</h3><p>Code Warriors</p><small>◷ 19:00 - 21:00</small></div><button>Tham gia</button></article>
+                <article><time>30<br />MAY</time><div><h3>Seminar: An toàn thông tin cơ bản</h3><p>Cyber Security Club</p><small>◷ 18:30 - 20:30</small></div><button>Tham gia</button></article>
+                <article><time>02<br />JUL</time><div><h3>Bầu Phó ban chủ nhiệm CLB nhiệm kỳ 2026</h3><p>Cộng đồng CLB</p><small>◷ 19:00 - 20:30</small></div><button>Bỏ phiếu</button></article>
+            </div>
+        </section>
+
+        <section class="club-widget" id="xep-hang-clb">
+            <div class="club-panel-head"><h2>CLB hoạt động tích cực</h2><a href="#">Xem tất cả</a></div>
+            <div class="rank-list">
+                <div><span>🥇</span><strong>AI Club</strong><small>1.250 điểm</small></div>
+                <div><span>🥈</span><strong>Code Warriors</strong><small>1.180 điểm</small></div>
+                <div><span>🥉</span><strong>Cyber Security Club</strong><small>1.020 điểm</small></div>
+            </div>
+        </section>
+    </aside>
+</main>

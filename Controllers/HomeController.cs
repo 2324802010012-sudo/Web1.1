@@ -18,6 +18,16 @@ namespace StudyConnect.Controllers
             return View();
         }
 
+        public IActionResult Hoc11()
+        {
+            return View();
+        }
+
+        public IActionResult CauLacBo()
+        {
+            return View();
+        }
+
         public IActionResult Privacy()
         {
             return View();

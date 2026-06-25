@@ -1,0 +1,50 @@
+﻿@model StudyConnect.Models.TaiKhoan
+@using StudyConnect.ViewModels
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+    var dashboard = Model.VaiTro switch
+    {
+        AccountRoles.QuanTri => ("Admin", "Index", "Vào trang quản trị"),
+        AccountRoles.SinhVien => ("SinhVien", "Index", "Vào dashboard sinh viên"),
+        AccountRoles.Mentor => ("Mentor", "Index", "Vào dashboard mentor"),
+        AccountRoles.ChuNhiemClb => ("ChuNhiemCLB", "Index", "Vào dashboard Chủ nhiệm CLB"),
+        AccountRoles.CoVan => ("CoVan", "Index", "Vào dashboard giảng viên"),
+        _ => ("Home", "Index", "Về trang chủ")
+    };
+}
+
+<section class="admin-page narrow">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">Tài khoản đang đăng nhập</p>
+            <h1>Hồ sơ cá nhân</h1>
+        </div>
+        <form asp-action="Logout" method="post">
+            <button class="btn btn-light" type="submit">Đăng xuất</button>
+        </form>
+    </div>
+
+    @if (TempData["SuccessMessage"] is string successMessage)
+    {
+        <div class="alert success">@successMessage</div>
+    }
+
+    <div class="profile-card">
+        <div class="profile-avatar">@Model.HoTen.Substring(0, 1).ToUpper()</div>
+        <div>
+            <h2>@Model.HoTen</h2>
+            <p>@Model.Email</p>
+            <span class="role-badge">@AccountRoles.DisplayName(Model.VaiTro)</span>
+        </div>
+    </div>
+
+    <div class="detail-card">
+        <dl>
+            <dt>Mã tài khoản</dt><dd>@Model.MaTaiKhoan</dd>
+            <dt>Số điện thoại</dt><dd>@(Model.SoDienThoai ?? "Chưa cập nhật")</dd>
+            <dt>Trạng thái</dt><dd>@(Model.TrangThai ?? "-")</dd>
+            <dt>Ngày tạo</dt><dd>@Model.NgayTao?.ToString("dd/MM/yyyy HH:mm")</dd>
+        </dl>
+        <a class="btn btn-primary" asp-controller="@dashboard.Item1" asp-action="@dashboard.Item2">@dashboard.Item3</a>
+    </div>
+</section>

@@ -1,0 +1,53 @@
+@{
+    ViewData["Title"] = "Dashboard sinh viên";
+}
+
+<main class="role-dashboard">
+    <aside class="role-sidebar">
+        <a class="role-brand" asp-controller="Home" asp-action="Index">StudyConnect</a>
+        <p>Sinh viên</p>
+        <a class="active" href="#tong-quan">Tổng quan</a>
+        <a href="#hoc-1-1">Học tập 1-1</a>
+        <a href="#clb">Cộng đồng CLB</a>
+        <a asp-controller="TaiKhoans" asp-action="Profile">Hồ sơ cá nhân</a>
+    </aside>
+
+    <section class="role-main">
+        <header class="role-header">
+            <div>
+                <p class="eyebrow">Đúng vai trò: Sinh viên</p>
+                <h1>Xin chào, @ViewBag.UserName</h1>
+                <span>Tạo yêu cầu hỗ trợ, nhận gợi ý mentor, theo dõi lịch học và tham gia hoạt động CLB.</span>
+            </div>
+            <form asp-controller="TaiKhoans" asp-action="Logout" method="post"><button class="btn btn-outline">Đăng xuất</button></form>
+        </header>
+
+        <section class="role-stats" id="tong-quan">
+            <article><small>Yêu cầu hỗ trợ</small><strong>@ViewBag.YeuCau</strong></article>
+            <article><small>Ghép nối mentor</small><strong>@ViewBag.GhepNoi</strong></article>
+            <article><small>Lịch học</small><strong>@ViewBag.LichHoc</strong></article>
+            <article><small>Đánh giá đã gửi</small><strong>@ViewBag.DanhGia</strong></article>
+            <article><small>CLB tham gia</small><strong>@ViewBag.CauLacBo</strong></article>
+        </section>
+
+        <section class="role-panel" id="hoc-1-1">
+            <div class="role-panel-head"><h2>Chức năng học tập 1-1</h2><a asp-controller="Home" asp-action="Hoc11">Mở trang Học 1-1</a></div>
+            <div class="role-feature-grid">
+                <article><span>01</span><h3>Cập nhật hồ sơ học tập</h3><p>Kỹ năng, chuyên ngành, mục tiêu học và lịch rảnh.</p></article>
+                <article><span>02</span><h3>Tạo yêu cầu hỗ trợ</h3><p>Chọn lĩnh vực, mô tả vấn đề và mức độ cần hỗ trợ.</p></article>
+                <article><span>03</span><h3>Xem mentor được gợi ý</h3><p>Hệ thống xếp theo chuyên môn, lịch rảnh, đánh giá và uy tín.</p></article>
+                <article><span>04</span><h3>Lịch sử học tập & đánh giá</h3><p>Xem báo cáo buổi học và đánh giá mentor sau mỗi buổi.</p></article>
+                <article><span>05</span><h3>Đăng ký làm mentor</h3><p>Gửi hồ sơ năng lực để giảng viên/cố vấn xét duyệt chuyên môn.</p></article>
+            </div>
+        </section>
+
+        <section class="role-panel" id="clb">
+            <div class="role-panel-head"><h2>Chức năng CLB dành cho sinh viên</h2><a asp-controller="Home" asp-action="CauLacBo">Mở Cộng đồng CLB</a></div>
+            <div class="role-feature-grid compact">
+                <article><span>CLB</span><h3>Tham gia hoạt động</h3><p>Xem hoạt động, tài liệu và cộng đồng CLB đang theo dõi.</p></article>
+                <article><span>VOTE</span><h3>Bầu Phó chủ nhiệm</h3><p>Tự ứng cử, đề cử thành viên hợp lệ và bỏ phiếu trong thời gian mở.</p></article>
+                <article><span>UY</span><h3>Uy tín CLB khi đăng ký mentor</h3><p>Sinh viên thuộc CLB được Chủ nhiệm CLB xác nhận uy tín trước khi cố vấn duyệt.</p></article>
+            </div>
+        </section>
+    </section>
+</main>

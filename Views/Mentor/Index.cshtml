@@ -1,0 +1,168 @@
+﻿@{
+    ViewData["Title"] = "Dashboard mentor";
+}
+
+<main class="role-dashboard mentor-dashboard">
+    <aside class="role-sidebar">
+        <a class="role-brand" asp-controller="Home" asp-action="Index">StudyConnect</a>
+        <p>Mentor</p>
+        <a class="active" href="#tong-quan">Tổng quan</a>
+        <a href="#ho-so-chuyen-mon">Hồ sơ chuyên môn</a>
+        <a href="#lich-ranh">Lịch rảnh</a>
+        <a href="#yeu-cau-ghep-noi">Yêu cầu ghép nối</a>
+        <a href="#lich-hoc">Lịch học</a>
+        <a href="#bao-cao">Báo cáo buổi học</a>
+        <a href="#uy-tin">Uy tín & đánh giá</a>
+        <a asp-controller="TaiKhoans" asp-action="Profile">Hồ sơ cá nhân</a>
+    </aside>
+
+    <section class="role-main">
+        <header class="role-header mentor-hero-card">
+            <div>
+                <p class="eyebrow">Đúng vai trò: Mentor</p>
+                <h1>Không gian hướng dẫn của @ViewBag.UserName</h1>
+                <span>Quản lý chuyên môn, lịch rảnh, yêu cầu ghép nối, lịch học, báo cáo buổi học và điểm uy tín theo đúng quy trình học tập 1-1.</span>
+            </div>
+            <div class="mentor-header-actions">
+                <a class="btn btn-primary" asp-controller="Home" asp-action="Hoc11">Xem trang Học 1-1</a>
+                <form asp-controller="TaiKhoans" asp-action="Logout" method="post"><button class="btn btn-outline" type="submit">Đăng xuất</button></form>
+            </div>
+        </header>
+
+        <section class="role-stats" id="tong-quan">
+            <article><small>Ghép nối</small><strong>@ViewBag.GhepNoi</strong><span>Đề xuất / đang học</span></article>
+            <article><small>Lịch học</small><strong>@ViewBag.LichHoc</strong><span>Sắp diễn ra</span></article>
+            <article><small>Báo cáo đã lập</small><strong>@ViewBag.BaoCao</strong><span>Theo dõi tiến độ</span></article>
+            <article><small>Đánh giá TB</small><strong>@ViewBag.DanhGia</strong><span>Từ sinh viên</span></article>
+            <article><small>Điểm uy tín</small><strong>@ViewBag.UyTin</strong><span>Dùng cho gợi ý</span></article>
+        </section>
+
+        <section class="mentor-workspace-grid">
+            <article class="role-panel" id="ho-so-chuyen-mon">
+                <div class="role-panel-head">
+                    <div>
+                        <p class="eyebrow">Hồ sơ mentor</p>
+                        <h2>Chuyên môn hướng dẫn</h2>
+                    </div>
+                    <a href="#">Cập nhật hồ sơ</a>
+                </div>
+                <div class="mentor-profile-summary">
+                    <div class="mentor-avatar-large">M</div>
+                    <div>
+                        <h3>@ViewBag.UserName</h3>
+                        <p>Mentor đã được duyệt, có thể nhận yêu cầu hỗ trợ học tập 1-1.</p>
+                        <div class="mentor-skill-tags">
+                            <span>ASP.NET Core</span>
+                            <span>Cơ sở dữ liệu</span>
+                            <span>Giải thuật</span>
+                            <span>AI / Machine Learning</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mentor-checklist">
+                    <div><span>✓</span><strong>Minh chứng năng lực</strong><small>Điểm môn, dự án, chứng chỉ hoặc kinh nghiệm.</small></div>
+                    <div><span>✓</span><strong>Trạng thái hoạt động</strong><small>Sẵn sàng nhận ghép nối khi lịch rảnh phù hợp.</small></div>
+                    <div><span>✓</span><strong>Quy tắc phạm vi</strong><small>Mentor không quản trị tài khoản, không duyệt bầu cử CLB.</small></div>
+                </div>
+            </article>
+
+            <article class="role-panel" id="lich-ranh">
+                <div class="role-panel-head">
+                    <div>
+                        <p class="eyebrow">Sinh lịch tự động</p>
+                        <h2>Lịch rảnh tuần này</h2>
+                    </div>
+                    <a href="#">Thêm khung giờ</a>
+                </div>
+                <div class="availability-grid">
+                    <div><strong>Thứ 2</strong><span>19:00 - 21:00</span></div>
+                    <div><strong>Thứ 4</strong><span>18:30 - 20:30</span></div>
+                    <div><strong>Thứ 6</strong><span>20:00 - 22:00</span></div>
+                    <div><strong>Chủ nhật</strong><span>09:00 - 11:00</span></div>
+                </div>
+                <p class="mentor-muted-note">Hệ thống dùng lịch rảnh của mentor và sinh viên để đề xuất lịch học phù hợp sau khi ghép nối được chấp nhận.</p>
+            </article>
+        </section>
+
+        <section class="role-panel" id="yeu-cau-ghep-noi">
+            <div class="role-panel-head">
+                <div>
+                    <p class="eyebrow">Ghép nối học tập</p>
+                    <h2>Yêu cầu hỗ trợ cần phản hồi</h2>
+                </div>
+                <a href="#">Xem tất cả</a>
+            </div>
+            <div class="mentor-request-board">
+                <article>
+                    <span class="request-level urgent">Cần hỗ trợ gấp</span>
+                    <h3>Ôn tập Entity Framework Core</h3>
+                    <p>Sinh viên cần hiểu migration, DbContext, quan hệ bảng và truy vấn LINQ.</p>
+                    <footer><small>Phù hợp 94%</small><div><button>Chấp nhận</button><button class="light">Từ chối</button></div></footer>
+                </article>
+                <article>
+                    <span class="request-level normal">Theo kế hoạch</span>
+                    <h3>Thiết kế CSDL cho đề tài CLB</h3>
+                    <p>Cần góp ý mô hình dữ liệu và chuẩn hóa các bảng chính.</p>
+                    <footer><small>Phù hợp 88%</small><div><button>Chấp nhận</button><button class="light">Từ chối</button></div></footer>
+                </article>
+                <article>
+                    <span class="request-level easy">Củng cố nền tảng</span>
+                    <h3>Giải thuật sắp xếp và tìm kiếm</h3>
+                    <p>Muốn luyện tư duy thuật toán trước bài kiểm tra giữa kỳ.</p>
+                    <footer><small>Phù hợp 82%</small><div><button>Chấp nhận</button><button class="light">Từ chối</button></div></footer>
+                </article>
+            </div>
+        </section>
+
+        <section class="mentor-workspace-grid">
+            <article class="role-panel" id="lich-hoc">
+                <div class="role-panel-head">
+                    <div>
+                        <p class="eyebrow">Lịch học 1-1</p>
+                        <h2>Buổi học sắp tới</h2>
+                    </div>
+                </div>
+                <div class="mentor-session-list">
+                    <div><time>18:30<br />T4</time><div><strong>ASP.NET MVC routing</strong><small>Online • Nguyễn Minh Anh</small></div><span>Sắp diễn ra</span></div>
+                    <div><time>20:00<br />T6</time><div><strong>SQL nâng cao</strong><small>Phòng B204 • Lê Hoàng Nam</small></div><span>Đã xác nhận</span></div>
+                    <div><time>09:00<br />CN</time><div><strong>Entity Framework Core</strong><small>Online • Trần Gia Hân</small></div><span>Chờ nhắc lịch</span></div>
+                </div>
+            </article>
+
+            <article class="role-panel" id="bao-cao">
+                <div class="role-panel-head">
+                    <div>
+                        <p class="eyebrow">Sau buổi học</p>
+                        <h2>Báo cáo cần hoàn tất</h2>
+                    </div>
+                    <a href="#">Lập báo cáo</a>
+                </div>
+                <div class="report-flow">
+                    <div><span>1</span><strong>Nội dung đã học</strong><small>Tóm tắt kiến thức, ví dụ và lỗi đã xử lý.</small></div>
+                    <div><span>2</span><strong>Bài tập / hướng học tiếp</strong><small>Giao nhiệm vụ và tài liệu cần ôn lại.</small></div>
+                    <div><span>3</span><strong>Mức độ tiếp thu</strong><small>Nhận xét để cập nhật lịch sử học tập.</small></div>
+                </div>
+            </article>
+        </section>
+
+        <section class="role-panel" id="uy-tin">
+            <div class="role-panel-head">
+                <div>
+                    <p class="eyebrow">Đánh giá và xếp hạng</p>
+                    <h2>Điểm uy tín mentor</h2>
+                </div>
+                <strong>Không phải quyền quản trị</strong>
+            </div>
+            <div class="mentor-reputation-grid">
+                <article><strong>Đánh giá sinh viên</strong><span>4.8/5</span><p>Sao và nhận xét sau mỗi buổi học.</p></article>
+                <article><strong>Tỷ lệ hoàn thành</strong><span>96%</span><p>Hoàn tất lịch học và báo cáo đúng hạn.</p></article>
+                <article><strong>Báo cáo buổi học</strong><span>Đầy đủ</span><p>Dữ liệu cho lịch sử học tập và gợi ý mentor.</p></article>
+                <article><strong>Uy tín CLB</strong><span>Nếu có</span><p>Chỉ cộng thêm khi được Chủ nhiệm CLB xác nhận.</p></article>
+            </div>
+            <div class="role-note-list mentor-boundary-note">
+                <p>Mentor chỉ quản lý chuyên môn, lịch rảnh, ghép nối, lịch học, báo cáo và theo dõi đánh giá của chính mình.</p>
+                <p>Mentor không quản lý tài khoản, không duyệt chuyên môn mentor khác, không xét duyệt Phó chủ nhiệm CLB và không can thiệp bầu cử nội bộ CLB.</p>
+            </div>
+        </section>
+    </section>
+</main>

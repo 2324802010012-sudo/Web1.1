@@ -1,0 +1,100 @@
+﻿@model StudyConnect.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Đăng nhập";
+    var returnUrl = ViewData["ReturnUrl"] as string;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/account.css" asp-append-version="true" />
+}
+
+<section class="account-shell login-shell">
+    <div class="account-grid login-grid">
+        <aside class="account-visual-panel">
+            <a class="account-home-link" asp-controller="Home" asp-action="Index">← Trang chủ</a>
+            <div class="account-brand-block">
+                <span class="account-logo-mark"><span></span><span></span><span></span></span>
+                <div>
+                    <strong>StudyConnect</strong>
+                    <small>Học 1-1 • Kết nối • Phát triển</small>
+                </div>
+            </div>
+            <h2>Tiếp tục hành trình học tập của bạn</h2>
+            <p>Đăng nhập để quản lý lịch học 1-1, theo dõi yêu cầu hỗ trợ và tham gia cộng đồng CLB.</p>
+            <div class="visual-points">
+                <span>Ghép mentor phù hợp</span>
+                <span>Lịch học linh hoạt</span>
+                <span>Đánh giá minh bạch</span>
+            </div>
+            <div class="students-photo-wrap">
+                <span class="float-chip top-chip">Mentor 4.9/5</span>
+                <img src="~/images/home-hero-students.png" alt="Sinh viên học nhóm cùng StudyConnect" />
+                <span class="float-chip bottom-chip">480+ mentor</span>
+            </div>
+        </aside>
+
+        <div class="account-form-panel">
+            <header class="form-heading">
+                <p class="eyebrow">Tài khoản StudyConnect</p>
+                <h1>Đăng <span>nhập</span></h1>
+                <p>Chào mừng bạn quay trở lại.</p>
+            </header>
+
+            @if (TempData["SuccessMessage"] is string successMessage)
+            {
+                <div class="alert success">@successMessage</div>
+            }
+
+            <form asp-action="Login" asp-route-returnUrl="@returnUrl" method="post" class="account-form">
+                <div asp-validation-summary="ModelOnly" class="alert error"></div>
+
+                <label class="account-field">
+                    <span>Email hoặc số điện thoại</span>
+                    <span class="account-input">
+                        <span class="field-icon">@@</span>
+                        <input asp-for="Email" placeholder="Nhập email hoặc số điện thoại" autocomplete="username" />
+                    </span>
+                    <small asp-validation-for="Email"></small>
+                </label>
+
+                <label class="account-field">
+                    <span>Mật khẩu</span>
+                    <span class="account-input">
+                        <span class="field-icon">⌕</span>
+                        <input asp-for="MatKhau" placeholder="Nhập mật khẩu" autocomplete="current-password" data-password-input />
+                        <button class="password-toggle" type="button" data-toggle-password aria-label="Hiện hoặc ẩn mật khẩu">◌</button>
+                    </span>
+                    <small asp-validation-for="MatKhau"></small>
+                </label>
+
+                <div class="account-row">
+                    <label class="check-control"><input type="checkbox" name="remember" /> <span>Ghi nhớ đăng nhập</span></label>
+                    <a href="#">Quên mật khẩu?</a>
+                </div>
+
+                <button class="account-primary" type="submit">Đăng nhập</button>
+
+                <div class="account-divider"><span>Hoặc đăng nhập với</span></div>
+
+                <div class="social-grid">
+                    <button class="social-button" type="button"><span class="google-mark">G</span> Google</button>
+                    <button class="social-button" type="button"><span class="facebook-mark">f</span> Facebook</button>
+                </div>
+            </form>
+
+            <p class="switch-copy">Chưa có tài khoản? <a asp-action="Create">Đăng ký ngay</a></p>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        document.querySelectorAll('[data-toggle-password]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const input = button.closest('.account-input')?.querySelector('[data-password-input]');
+                if (input) input.type = input.type === 'password' ? 'text' : 'password';
+            });
+        });
+    </script>
+}

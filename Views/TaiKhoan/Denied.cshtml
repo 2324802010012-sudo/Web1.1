@@ -1,0 +1,15 @@
+﻿@{
+    ViewData["Title"] = "Không đủ quyền";
+}
+
+<section class="auth-page">
+    <div class="auth-card">
+        <a class="auth-brand" asp-controller="Home" asp-action="Index">StudyConnect</a>
+        <h1>Không đủ quyền truy cập</h1>
+        <p>Tài khoản hiện tại không có quyền mở chức năng này. Vui lòng đăng nhập bằng tài khoản phù hợp hoặc quay về trang chủ.</p>
+        <div class="row-actions">
+            <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Về trang chủ</a>
+            <a class="btn btn-light" asp-action="Profile">Hồ sơ của tôi</a>
+        </div>
+    </div>
+</section>

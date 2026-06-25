@@ -1,122 +1,29 @@
-@model StudyConnect.Models.TaiKhoan
-
+﻿@model StudyConnect.Models.TaiKhoan
+@using StudyConnect.ViewModels
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Chi tiết tài khoản";
 }
 
-<h1>Details</h1>
+<section class="admin-page narrow">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">Tài khoản</p>
+            <h1>@Model.HoTen</h1>
+        </div>
+        <a class="btn btn-light" asp-action="Index">Quay lại</a>
+    </div>
 
-<div>
-    <h4>TaiKhoan</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.HoTen)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.HoTen)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Email)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Email)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.MatKhau)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.MatKhau)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.VaiTro)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.VaiTro)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.SoDienThoai)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.SoDienThoai)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.AnhDaiDien)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.AnhDaiDien)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TrangThai)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TrangThai)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.NgayTao)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.NgayTao)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.GiangVien)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.GiangVien)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.HoatDongClbs)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.HoatDongClbs)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.LichRanhs)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.LichRanhs)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.NguoiHuongDan)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.NguoiHuongDan)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.SinhVien)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.SinhVien)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TaiLieuClbs)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TaiLieuClbs)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ThongBaos)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ThongBaos)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.MaTaiKhoan">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+    <div class="detail-card">
+        <dl>
+            <dt>Email</dt><dd>@Model.Email</dd>
+            <dt>Vai trò</dt><dd>@AccountRoles.DisplayName(Model.VaiTro)</dd>
+            <dt>Số điện thoại</dt><dd>@(Model.SoDienThoai ?? "-")</dd>
+            <dt>Trạng thái</dt><dd>@(Model.TrangThai ?? "-")</dd>
+            <dt>Ngày tạo</dt><dd>@Model.NgayTao?.ToString("dd/MM/yyyy HH:mm")</dd>
+        </dl>
+        <div class="row-actions">
+            <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.MaTaiKhoan">Sửa tài khoản</a>
+            <a class="btn btn-light" asp-action="Profile">Hồ sơ của tôi</a>
+        </div>
+    </div>
+</section>
