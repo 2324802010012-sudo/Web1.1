@@ -1,0 +1,108 @@
+﻿@model StudyConnect.ViewModels.SinhVienHoSoViewModel
+@{
+    ViewData["Title"] = "Cập nhật hồ sơ sinh viên";
+    var slots = new[]
+    {
+        ("2|18:00|20:00", "Thứ 2", "18:00 - 20:00"),
+        ("3|19:00|21:00", "Thứ 3", "19:00 - 21:00"),
+        ("4|18:30|20:30", "Thứ 4", "18:30 - 20:30"),
+        ("5|19:00|21:00", "Thứ 5", "19:00 - 21:00"),
+        ("6|20:00|22:00", "Thứ 6", "20:00 - 22:00"),
+        ("7|08:00|10:00", "Thứ 7", "08:00 - 10:00"),
+        ("8|09:00|11:00", "Chủ nhật", "09:00 - 11:00")
+    };
+}
+
+<main class="study-flow-page">
+    <aside class="study-side-nav">
+        <a class="role-brand" asp-controller="SinhVien" asp-action="Index">StudyConnect</a>
+        <p>Quy trình học 1-1</p>
+        <a class="active" asp-controller="SinhVien" asp-action="HoSo">1. Hồ sơ & lịch rảnh</a>
+        <a asp-controller="YeuCauHoTroHocTaps" asp-action="Create">2. Tạo yêu cầu</a>
+        <a asp-controller="Home" asp-action="Hoc11" asp-fragment="mentor-goi-y">3. Gợi ý mentor</a>
+        <a asp-controller="YeuCauHoTroHocTaps" asp-action="Index">4. Ghép nối & lịch học</a>
+        <a asp-controller="SinhVien" asp-action="Index">Dashboard sinh viên</a>
+    </aside>
+
+    <section class="study-flow-main">
+        <div class="flow-breadcrumb">Học 1-1 > Cập nhật hồ sơ</div>
+        <header class="flow-title">
+            <div>
+                <h1>Cập nhật hồ sơ học tập</h1>
+                <p>Thông tin này là dữ liệu đầu vào để hệ thống gợi ý mentor theo kỹ năng, chuyên ngành, mục tiêu học và lịch rảnh.</p>
+            </div>
+        </header>
+
+        @if (TempData["InfoMessage"] is string info)
+        {
+            <div class="flow-alert">@info</div>
+        }
+        @if (TempData["SuccessMessage"] is string success)
+        {
+            <div class="flow-alert success">@success</div>
+        }
+
+        <form asp-action="HoSo" method="post" class="flow-card profile-update-card">
+            <input type="hidden" asp-for="ReturnUrl" />
+            <div asp-validation-summary="ModelOnly" class="alert error"></div>
+
+            <div class="flow-section-title"><span>1</span><h2>Thông tin học tập</h2></div>
+            <div class="request-grid two">
+                <label class="request-field">
+                    <span>Mã số sinh viên</span>
+                    <input asp-for="Mssv" placeholder="VD: 2324802010012" />
+                    <small asp-validation-for="Mssv"></small>
+                </label>
+                <label class="request-field">
+                    <span>Chuyên ngành</span>
+                    <input asp-for="ChuyenNganh" placeholder="VD: Công nghệ phần mềm" />
+                    <small asp-validation-for="ChuyenNganh"></small>
+                </label>
+                <label class="request-field">
+                    <span>Lớp</span>
+                    <input asp-for="Lop" placeholder="VD: D23_TH01" />
+                    <small asp-validation-for="Lop"></small>
+                </label>
+                <label class="request-field">
+                    <span>GPA</span>
+                    <input asp-for="Gpa" placeholder="VD: 3.2" />
+                    <small asp-validation-for="Gpa"></small>
+                </label>
+            </div>
+
+            <div class="flow-section-title"><span>2</span><h2>Kỹ năng và mục tiêu</h2></div>
+            <label class="request-field">
+                <span>Kỹ năng hiện có</span>
+                <textarea asp-for="KyNang" rows="4" placeholder="VD: C#, SQL cơ bản, HTML/CSS, tư duy giải thuật..."></textarea>
+                <small asp-validation-for="KyNang"></small>
+            </label>
+            <label class="request-field">
+                <span>Mục tiêu học</span>
+                <textarea asp-for="MucTieuHoc" rows="4" placeholder="VD: Muốn nắm chắc ASP.NET MVC để hoàn thành đồ án Web 1-1."></textarea>
+                <small asp-validation-for="MucTieuHoc"></small>
+            </label>
+
+            <div class="flow-section-title"><span>3</span><h2>Lịch rảnh</h2></div>
+            <div class="slot-grid">
+                @foreach (var slot in slots)
+                {
+                    <label class="slot-check">
+                        <input type="checkbox" name="LichRanhDaChon" value="@slot.Item1" checked="@(Model.LichRanhDaChon.Contains(slot.Item1))" />
+                        <strong>@slot.Item2</strong>
+                        <span>@slot.Item3</span>
+                    </label>
+                }
+            </div>
+            <small class="field-validation-valid" asp-validation-for="LichRanhDaChon"></small>
+
+            <div class="flow-actions">
+                <a class="btn btn-light" asp-controller="SinhVien" asp-action="Index">Hủy</a>
+                <button class="btn btn-primary" type="submit">Lưu hồ sơ và tiếp tục</button>
+            </div>
+        </form>
+    </section>
+</main>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

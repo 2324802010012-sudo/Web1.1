@@ -119,6 +119,11 @@ public class TaiKhoansController : Controller
     {
         if (IsLoggedIn())
         {
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return LocalRedirect(returnUrl);
+            }
+
             return RedirectToRoleDashboard(CurrentUserRole());
         }
 
@@ -156,6 +161,11 @@ public class TaiKhoansController : Controller
         }
 
         SignIn(taiKhoan);
+
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return LocalRedirect(returnUrl);
+        }
 
         return RedirectToRoleDashboard(taiKhoan.VaiTro);
     }

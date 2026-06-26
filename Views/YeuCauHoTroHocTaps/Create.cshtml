@@ -1,0 +1,154 @@
+﻿@model StudyConnect.ViewModels.YeuCauHoTroCreateViewModel
+@{
+    ViewData["Title"] = "Tạo yêu cầu hỗ trợ";
+    var supportItems = new[] { "Giải thích khái niệm", "Sửa lỗi bài tập", "Ôn tập kiểm tra", "Làm đồ án", "Tư duy giải thuật", "Thiết kế CSDL", "Code review", "Định hướng tài liệu" };
+}
+
+<main class="study-flow-page">
+    <aside class="study-side-nav">
+        <a class="role-brand" asp-controller="SinhVien" asp-action="Index">StudyConnect</a>
+        <p>Quy trình học 1-1</p>
+        <a asp-controller="SinhVien" asp-action="HoSo">1. Hồ sơ & lịch rảnh</a>
+        <a class="active" asp-controller="YeuCauHoTroHocTaps" asp-action="Create">2. Tạo yêu cầu</a>
+        <a asp-controller="Home" asp-action="Hoc11" asp-fragment="mentor-goi-y">3. Gợi ý mentor</a>
+        <a asp-controller="YeuCauHoTroHocTaps" asp-action="Index">4. Ghép nối & lịch học</a>
+        <a asp-controller="SinhVien" asp-action="Index">Dashboard sinh viên</a>
+    </aside>
+
+    <section class="study-flow-main">
+        <div class="flow-breadcrumb">Học 1-1 > Tạo yêu cầu hỗ trợ</div>
+        <header class="flow-title">
+            <div>
+                <h1>Tạo yêu cầu hỗ trợ 1-1</h1>
+                <p>Mô tả đúng lĩnh vực, mục tiêu và vấn đề để hệ thống đề xuất mentor phù hợp theo chuyên môn, lịch rảnh, đánh giá và uy tín.</p>
+            </div>
+            <a class="btn btn-light" asp-controller="YeuCauHoTroHocTaps" asp-action="Index">Yêu cầu của tôi</a>
+        </header>
+
+        <div class="request-steps">
+            <div><span>1</span><strong>Cập nhật hồ sơ</strong></div>
+            <div class="active"><span>2</span><strong>Tạo yêu cầu</strong></div>
+            <div><span>3</span><strong>Chọn mentor</strong></div>
+            <div><span>4</span><strong>Lên lịch</strong></div>
+        </div>
+
+        <div class="request-layout">
+            <form asp-action="Create" method="post" class="flow-card request-form-card">
+                <input asp-for="MentorId" type="hidden" />
+                <div asp-validation-summary="ModelOnly" class="alert error"></div>
+
+                @if (Model.MentorId.HasValue && !string.IsNullOrWhiteSpace(Model.MentorDaChon))
+                {
+                    <div class="selected-mentor-banner">
+                        <span>@Model.MentorDaChon.Substring(0, 1).ToUpper()</span>
+                        <div>
+                            <strong>Mentor đã chọn: @Model.MentorDaChon</strong>
+                            <small>Sau khi lưu yêu cầu, hệ thống sẽ gửi đề xuất ghép nối tới mentor này.</small>
+                        </div>
+                    </div>
+                }
+
+                <div class="flow-section-title"><span>1</span><h2>Nhu cầu học tập</h2></div>
+                <div class="request-grid three">
+                    <label class="request-field">
+                        <span>Lĩnh vực cần hỗ trợ</span>
+                        <select asp-for="MaLinhVuc" asp-items="Model.LinhVucOptions"><option value="">Chọn lĩnh vực</option></select>
+                        <small asp-validation-for="MaLinhVuc"></small>
+                    </label>
+                    <label class="request-field">
+                        <span>Chủ đề / công nghệ</span>
+                        <input asp-for="ChuDeCongNghe" placeholder="VD: Java, ASP.NET, Cơ sở dữ liệu, AI" />
+                        <small asp-validation-for="ChuDeCongNghe"></small>
+                    </label>
+                    <label class="request-field">
+                        <span>Mức độ cần hỗ trợ</span>
+                        <select asp-for="MucDoCanHoTro" asp-items="Model.MucDoOptions"></select>
+                        <small asp-validation-for="MucDoCanHoTro"></small>
+                    </label>
+                </div>
+
+                <div class="flow-section-title"><span>2</span><h2>Mục tiêu và vấn đề</h2></div>
+                <label class="request-field">
+                    <span>Tiêu đề yêu cầu</span>
+                    <input asp-for="TieuDe" maxlength="200" placeholder="VD: Cần mentor hỗ trợ làm đồ án ASP.NET MVC" />
+                    <small asp-validation-for="TieuDe"></small>
+                </label>
+                <label class="request-field">
+                    <span>Mô tả vấn đề</span>
+                    <textarea asp-for="MoTaChiTiet" rows="6" placeholder="Bạn đang kẹt ở phần nào, đã học đến đâu, mong muốn mentor hỗ trợ kết quả gì?"></textarea>
+                    <small asp-validation-for="MoTaChiTiet"></small>
+                </label>
+
+                <div class="request-field">
+                    <span>Phần cần mentor hỗ trợ</span>
+                    <div class="support-checkbox-grid">
+                        @foreach (var item in supportItems)
+                        {
+                            <label>
+                                <input type="checkbox" name="PhanCanHoTro" value="@item" checked="@(Model.PhanCanHoTro.Contains(item))" />
+                                <span>@item</span>
+                            </label>
+                        }
+                    </div>
+                </div>
+
+                <label class="request-field">
+                    <span>Bạn đã thử những gì?</span>
+                    <textarea asp-for="DaThuNhungGi" rows="3" maxlength="500" placeholder="VD: Đã xem tài liệu, thử code mẫu nhưng chưa hiểu cách kết nối database."></textarea>
+                    <small asp-validation-for="DaThuNhungGi"></small>
+                </label>
+
+                <div class="flow-actions">
+                    <a class="btn btn-light" asp-controller="SinhVien" asp-action="Index">Hủy</a>
+                    <button class="btn btn-primary" type="submit">Lưu yêu cầu và xem gợi ý</button>
+                </div>
+            </form>
+
+            <aside class="request-summary-column">
+                <section class="flow-card compact-summary">
+                    <h2>Tóm tắt luồng xử lý</h2>
+                    <dl>
+                        <dt>Bước hiện tại</dt><dd>Tạo yêu cầu hỗ trợ</dd>
+                        <dt>Tiếp theo</dt><dd>Chọn mentor phù hợp và gửi đề xuất ghép nối</dd>
+                        <dt>Sau khi mentor đồng ý</dt><dd>Sinh viên lên lịch học theo lịch rảnh chung</dd>
+                    </dl>
+                    <p class="mentor-tip">Bạn cần hoàn thiện hồ sơ, kỹ năng, mục tiêu học và lịch rảnh trước bước này. Nếu thiếu, hệ thống sẽ tự chuyển về trang hồ sơ.</p>
+                </section>
+
+                <section class="flow-card mentor-suggestion-card">
+                    <h2>Mentor có thể phù hợp</h2>
+                    @if (Model.MentorGoiY.Count == 0)
+                    {
+                        <p class="empty-note">Chọn lĩnh vực để hệ thống có dữ liệu gợi ý mentor.</p>
+                    }
+                    else
+                    {
+                        <div class="suggested-mentor-list">
+                            @foreach (var mentor in Model.MentorGoiY)
+                            {
+                                <article>
+                                    <span>@mentor.HoTen.Substring(0, 1).ToUpper()</span>
+                                    <div>
+                                        <strong>@mentor.HoTen</strong>
+                                        <small>@mentor.ChuyenMon</small>
+                                        <div class="match-reasons">
+                                            @foreach (var reason in mentor.LyDoGoiY.Take(2))
+                                            {
+                                                <span>@reason</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <b class="match-score">@mentor.DiemPhuHop.ToString("0")%</b>
+                                </article>
+                            }
+                        </div>
+                    }
+                </section>
+            </aside>
+        </div>
+    </section>
+</main>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

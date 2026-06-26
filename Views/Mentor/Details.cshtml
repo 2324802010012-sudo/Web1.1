@@ -1,0 +1,97 @@
+﻿@model StudyConnect.Models.GhepNoiHocTap
+@{
+    ViewData["Title"] = "Chi tiết yêu cầu ghép nối";
+    var request = Model.MaYeuCauNavigation;
+    var student = request.MaSinhVienNavigation;
+    var sessions = Model.LichHocs.OrderByDescending(l => l.NgayHoc).ThenByDescending(l => l.GioBatDau).ToList();
+    string DayName(int day) => day == 8 ? "Chủ nhật" : $"Thứ {day}";
+}
+
+<main class="study-flow-page">
+    <aside class="study-side-nav">
+        <a class="role-brand" asp-controller="Mentor" asp-action="Index">StudyConnect</a>
+        <p>Mentor</p>
+        <a asp-controller="Mentor" asp-action="Index">Dashboard mentor</a>
+        <a class="active" asp-controller="Mentor" asp-action="Details" asp-route-id="@Model.MaGhepNoi">Chi tiết ghép nối</a>
+        <a asp-controller="Mentor" asp-action="Availability">Lịch rảnh</a>
+    </aside>
+
+    <section class="study-flow-main">
+        <div class="flow-breadcrumb">Mentor > Chi tiết yêu cầu ghép nối</div>
+
+        @if (TempData["SuccessMessage"] is string success)
+        {
+            <div class="flow-alert success">@success</div>
+        }
+
+        <header class="flow-title">
+            <div>
+                <h1>@request.MaLinhVucNavigation.TenLinhVuc</h1>
+                <p>Yêu cầu từ @student.MaTaiKhoanNavigation.HoTen, phù hợp @Model.DiemPhuHop?.ToString("0")%.</p>
+            </div>
+            <span class="status-pill">@Model.TrangThai</span>
+        </header>
+
+        <div class="request-layout">
+            <section class="flow-card request-detail-card">
+                <dl class="detail-list">
+                    <dt>Sinh viên</dt><dd>@student.MaTaiKhoanNavigation.HoTen - @student.MaTaiKhoanNavigation.Email</dd>
+                    <dt>Mục tiêu</dt><dd>@request.MucTieu</dd>
+                    <dt>Mức độ</dt><dd>@request.MucDoCanHoTro</dd>
+                    <dt>Ngày gửi</dt><dd>@Model.NgayGhep?.ToString("dd/MM/yyyy HH:mm")</dd>
+                </dl>
+                <pre class="problem-box">@request.MoTaVanDe</pre>
+
+                <h2>Lịch rảnh sinh viên</h2>
+                <div class="shared-mini-slots">
+                    @if (!student.MaTaiKhoanNavigation.LichRanhs.Any())
+                    {
+                        <span>Chưa cập nhật</span>
+                    }
+                    else
+                    {
+                        @foreach (var slot in student.MaTaiKhoanNavigation.LichRanhs.OrderBy(l => l.Thu).ThenBy(l => l.GioBatDau))
+                        {
+                            <span>@DayName(slot.Thu) @slot.GioBatDau.ToString("HH:mm")-@slot.GioKetThuc.ToString("HH:mm")</span>
+                        }
+                    }
+                </div>
+
+                <h2>Lịch học đã đặt</h2>
+                <div class="mini-session-list">
+                    @if (sessions.Count == 0)
+                    {
+                        <article><time>--/--</time><div><strong>Chưa có lịch học</strong><small>Sinh viên sẽ lên lịch sau khi bạn chấp nhận.</small></div></article>
+                    }
+                    else
+                    {
+                        @foreach (var session in sessions)
+                        {
+                            <article>
+                                <time>@session.NgayHoc.ToString("dd/MM")</time>
+                                <div><strong>@session.GioBatDau.ToString("HH:mm") - @session.GioKetThuc.ToString("HH:mm")</strong><small>@session.HinhThuc - @session.TrangThai</small></div>
+                                @if (session.BaoCaoBuoiHoc == null)
+                                {
+                                    <a asp-action="BaoCao" asp-route-id="@session.MaLichHoc">Báo cáo</a>
+                                }
+                                else
+                                {
+                                    <span>Đã báo cáo</span>
+                                }
+                            </article>
+                        }
+                    }
+                </div>
+
+                <div class="flow-actions">
+                    <a class="btn btn-light" asp-action="Index" asp-fragment="yeu-cau-ghep-noi">Quay lại</a>
+                    @if (Model.TrangThai == "Đề xuất")
+                    {
+                        <form asp-action="RejectMatch" asp-route-id="@Model.MaGhepNoi" method="post"><button class="btn btn-light" type="submit">Từ chối</button></form>
+                        <form asp-action="AcceptMatch" asp-route-id="@Model.MaGhepNoi" method="post"><button class="btn btn-primary" type="submit">Chấp nhận</button></form>
+                    }
+                </div>
+            </section>
+        </div>
+    </section>
+</main>

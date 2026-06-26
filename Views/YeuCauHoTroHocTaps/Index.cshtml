@@ -1,0 +1,159 @@
+﻿@model IEnumerable<StudyConnect.Models.YeuCauHoTroHocTap>
+@{
+    ViewData["Title"] = "Yêu cầu và lịch học";
+    var requests = Model.ToList();
+    var upcomingSchedules = ViewBag.UpcomingSchedules as List<StudyConnect.Models.LichHoc> ?? [];
+    var waitingScheduleCount = Convert.ToInt32(ViewBag.WaitingScheduleCount ?? 0);
+    var waitingReportCount = Convert.ToInt32(ViewBag.WaitingReportCount ?? 0);
+    var waitingReviewCount = Convert.ToInt32(ViewBag.WaitingReviewCount ?? 0);
+    var completedScheduleCount = Convert.ToInt32(ViewBag.CompletedScheduleCount ?? 0);
+}
+
+<main class="study-flow-page">
+    <aside class="study-side-nav">
+        <a class="role-brand" asp-controller="SinhVien" asp-action="Index">StudyConnect</a>
+        <p>Quy trình học 1-1</p>
+        <a asp-controller="SinhVien" asp-action="HoSo">1. Hồ sơ & lịch rảnh</a>
+        <a asp-controller="YeuCauHoTroHocTaps" asp-action="Create">2. Tạo yêu cầu</a>
+        <a asp-controller="Home" asp-action="Hoc11" asp-fragment="mentor-goi-y">3. Tìm mentor</a>
+        <a class="active" asp-controller="YeuCauHoTroHocTaps" asp-action="Index">4. Lịch học & ghép nối</a>
+        <a asp-controller="SinhVien" asp-action="Index">Dashboard sinh viên</a>
+    </aside>
+
+    <section class="study-flow-main">
+        <div class="flow-breadcrumb">Học 1-1 > Lịch học và yêu cầu</div>
+
+        @if (TempData["SuccessMessage"] is string success)
+        {
+            <div class="flow-alert success">@success</div>
+        }
+
+        <header class="flow-title">
+            <div>
+                <h1>Lịch học 1-1 của tôi</h1>
+                <p>Theo dõi toàn bộ luồng: mentor chấp nhận, lên lịch, học, nhận báo cáo và đánh giá mentor.</p>
+            </div>
+            <a class="btn btn-primary" asp-action="Create">Tạo yêu cầu mới</a>
+        </header>
+
+        <section class="schedule-stat-grid">
+            <article><span class="stat-dot blue"></span><small>Sắp tới</small><strong>@upcomingSchedules.Count</strong><p>Buổi đã lên lịch</p></article>
+            <article><span class="stat-dot green"></span><small>Hoàn thành</small><strong>@completedScheduleCount</strong><p>Buổi có báo cáo hoặc đã kết thúc</p></article>
+            <article><span class="stat-dot orange"></span><small>Cần lên lịch</small><strong>@waitingScheduleCount</strong><p>Mentor đã chấp nhận</p></article>
+            <article><span class="stat-dot purple"></span><small>Cần đánh giá</small><strong>@waitingReviewCount</strong><p>Sau khi mentor lập báo cáo</p></article>
+        </section>
+
+        <section class="flow-card schedule-board">
+            <div class="role-panel-head">
+                <div>
+                    <p class="eyebrow">Lịch học</p>
+                    <h2>Buổi học sắp tới</h2>
+                </div>
+                <span>@waitingReportCount buổi chờ mentor báo cáo</span>
+            </div>
+
+            @if (upcomingSchedules.Count == 0)
+            {
+                <div class="empty-state compact">
+                    <h2>Chưa có buổi học sắp tới</h2>
+                    <p>Khi mentor chấp nhận ghép nối, bạn có thể chọn khung giờ rảnh chung để lên lịch học.</p>
+                    <a class="btn btn-primary" asp-controller="Home" asp-action="Hoc11" asp-fragment="mentor-goi-y">Tìm mentor</a>
+                </div>
+            }
+            else
+            {
+                <div class="schedule-timeline">
+                    @foreach (var session in upcomingSchedules)
+                    {
+                        var match = session.MaGhepNoiNavigation;
+                        var request = match.MaYeuCauNavigation;
+                        <article>
+                            <time>
+                                <strong>@session.NgayHoc.ToString("dd/MM")</strong>
+                                <span>@session.GioBatDau.ToString("HH:mm") - @session.GioKetThuc.ToString("HH:mm")</span>
+                            </time>
+                            <div>
+                                <h3>@request.MaLinhVucNavigation.TenLinhVuc</h3>
+                                <p>@request.MucTieu</p>
+                                <div class="schedule-meta">
+                                    <span>Mentor: @match.MaHuongDanNavigation.MaTaiKhoanNavigation.HoTen</span>
+                                    <span>@session.HinhThuc</span>
+                                    <span>@(string.IsNullOrWhiteSpace(session.DiaDiem) ? "Chưa có địa điểm" : session.DiaDiem)</span>
+                                </div>
+                            </div>
+                            <div class="schedule-actions">
+                                @if (!string.IsNullOrWhiteSpace(session.LinkOnline))
+                                {
+                                    <a class="btn btn-light" href="@session.LinkOnline" target="_blank" rel="noopener">Vào lớp</a>
+                                }
+                                <a class="btn btn-light" asp-action="Details" asp-route-id="@request.MaYeuCau">Chi tiết</a>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="flow-card request-list-card">
+            <div class="role-panel-head">
+                <div>
+                    <p class="eyebrow">Theo dõi yêu cầu</p>
+                    <h2>Ghép nối và tiến độ học</h2>
+                </div>
+            </div>
+
+            @if (!requests.Any())
+            {
+                <div class="empty-state">
+                    <h2>Chưa có yêu cầu nào</h2>
+                    <p>Hãy tạo yêu cầu đầu tiên để hệ thống gợi ý mentor phù hợp.</p>
+                    <a class="btn btn-primary" asp-action="Create">Tạo yêu cầu hỗ trợ</a>
+                </div>
+            }
+            else
+            {
+                <div class="request-progress-list">
+                    @foreach (var item in requests)
+                    {
+                        var matches = item.GhepNoiHocTaps?.ToList() ?? [];
+                        var accepted = matches.FirstOrDefault(g => g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch" || g.TrangThai == "Chờ sinh viên đánh giá" || g.TrangThai == "Hoàn thành");
+                        var latestSchedule = matches.SelectMany(g => g.LichHocs).OrderByDescending(l => l.NgayHoc).FirstOrDefault();
+                        var canEvaluate = accepted?.LichHocs.Any(l => l.BaoCaoBuoiHoc != null) == true && accepted.DanhGiaHuongDans.Count == 0;
+                        <article>
+                            <div class="request-progress-main">
+                                <span class="status-pill">@item.TrangThai</span>
+                                <h3>@item.MaLinhVucNavigation.TenLinhVuc</h3>
+                                <p>@item.MucTieu</p>
+                                <div class="schedule-meta">
+                                    <span>@matches.Count mentor đã gửi</span>
+                                    @if (latestSchedule != null)
+                                    {
+                                        <span>Lịch gần nhất: @latestSchedule.NgayHoc.ToString("dd/MM/yyyy") @latestSchedule.GioBatDau.ToString("HH:mm")</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Chưa có lịch học</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="request-next-action">
+                                @if (accepted != null && latestSchedule == null)
+                                {
+                                    <a class="btn btn-primary" asp-action="Schedule" asp-route-id="@accepted.MaGhepNoi">Lên lịch</a>
+                                }
+                                else if (canEvaluate && accepted != null)
+                                {
+                                    <a class="btn btn-primary" asp-action="Evaluate" asp-route-id="@accepted.MaGhepNoi">Đánh giá</a>
+                                }
+                                else
+                                {
+                                    <a class="btn btn-light" asp-action="Details" asp-route-id="@item.MaYeuCau">Chi tiết</a>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+    </section>
+</main>

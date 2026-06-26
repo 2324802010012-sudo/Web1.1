@@ -1,0 +1,178 @@
+﻿@model StudyConnect.Models.YeuCauHoTroHocTap
+@{
+    ViewData["Title"] = "Chi tiết yêu cầu hỗ trợ";
+    var mentors = ViewBag.MentorGoiY as List<StudyConnect.ViewModels.MentorSuggestionViewModel> ?? [];
+    var matches = Model.GhepNoiHocTaps.OrderByDescending(g => g.NgayGhep).ToList();
+    var hasMentorSuggestion = matches.Any();
+    var hasAcceptedMatch = matches.Any(g => g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch" || g.TrangThai == "Chờ sinh viên đánh giá" || g.TrangThai == "Hoàn thành");
+    var hasSchedule = matches.SelectMany(g => g.LichHocs).Any();
+}
+
+<main class="study-flow-page">
+    <aside class="study-side-nav">
+        <a class="role-brand" asp-controller="SinhVien" asp-action="Index">StudyConnect</a>
+        <p>Quy trình học 1-1</p>
+        <a asp-controller="SinhVien" asp-action="HoSo">1. Hồ sơ & lịch rảnh</a>
+        <a asp-controller="YeuCauHoTroHocTaps" asp-action="Create">2. Tạo yêu cầu</a>
+        <a asp-controller="Home" asp-action="Hoc11" asp-fragment="mentor-goi-y">3. Tìm mentor</a>
+        <a class="active" asp-controller="YeuCauHoTroHocTaps" asp-action="Index">4. Ghép nối & lịch học</a>
+        <a asp-controller="SinhVien" asp-action="Index">Dashboard sinh viên</a>
+    </aside>
+
+    <section class="study-flow-main">
+        <div class="flow-breadcrumb">Học 1-1 > Chi tiết yêu cầu</div>
+
+        @if (TempData["SuccessMessage"] is string success)
+        {
+            <div class="flow-alert success">@success</div>
+        }
+
+        <div class="request-steps">
+            <div class="active"><span>1</span><strong>Yêu cầu</strong></div>
+            <div class="@(hasMentorSuggestion ? "active" : string.Empty)"><span>2</span><strong>Gợi ý mentor</strong></div>
+            <div class="@(hasAcceptedMatch ? "active" : string.Empty)"><span>3</span><strong>Ghép nối</strong></div>
+            <div class="@(hasSchedule ? "active" : string.Empty)"><span>4</span><strong>Lịch học</strong></div>
+        </div>
+
+        <div class="request-layout">
+            <section class="flow-card request-detail-card">
+                <div class="role-panel-head">
+                    <div>
+                        <p class="eyebrow">@Model.MaLinhVucNavigation.TenLinhVuc</p>
+                        <h1>Yêu cầu hỗ trợ #@Model.MaYeuCau</h1>
+                    </div>
+                    <span class="status-pill">@Model.TrangThai</span>
+                </div>
+                <dl class="detail-list">
+                    <dt>Mức độ</dt><dd>@Model.MucDoCanHoTro</dd>
+                    <dt>Ngày tạo</dt><dd>@Model.NgayTao?.ToString("dd/MM/yyyy HH:mm")</dd>
+                    <dt>Mục tiêu</dt><dd>@Model.MucTieu</dd>
+                </dl>
+                <pre class="problem-box">@Model.MoTaVanDe</pre>
+
+                <section class="match-flow-section">
+                    <h2>Ghép nối mentor</h2>
+                    @if (!matches.Any())
+                    {
+                        <p class="empty-note">Chưa gửi đề xuất tới mentor nào. Hãy chọn mentor phù hợp ở cột bên phải.</p>
+                    }
+                    else
+                    {
+                        <div class="match-list">
+                            @foreach (var match in matches)
+                            {
+                                var sessions = match.LichHocs.OrderByDescending(l => l.NgayHoc).ThenByDescending(l => l.GioBatDau).ToList();
+                                var latestSession = sessions.FirstOrDefault();
+                                var hasReport = latestSession?.BaoCaoBuoiHoc != null;
+                                var hasReview = match.DanhGiaHuongDans.Any();
+                                <article>
+                                    <div>
+                                        <strong>@match.MaHuongDanNavigation.MaTaiKhoanNavigation.HoTen</strong>
+                                        <small>@match.TrangThai - Phù hợp @match.DiemPhuHop?.ToString("0")%</small>
+                                    </div>
+                                    @if (sessions.Count > 0)
+                                    {
+                                        <div class="mini-session-list">
+                                            @foreach (var session in sessions.Take(3))
+                                            {
+                                                <article>
+                                                    <time>@session.NgayHoc.ToString("dd/MM")</time>
+                                                    <div>
+                                                        <strong>@session.GioBatDau.ToString("HH:mm")-@session.GioKetThuc.ToString("HH:mm")</strong>
+                                                        <small>@session.HinhThuc - @session.TrangThai</small>
+                                                    </div>
+                                                    @if (session.BaoCaoBuoiHoc != null)
+                                                    {
+                                                        <span>Đã báo cáo</span>
+                                                    }
+                                                </article>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p>Chưa có lịch học. Khi mentor chấp nhận, bạn có thể chọn khung giờ chung của hai bên.</p>
+                                    }
+                                    <footer>
+                                        <a class="btn btn-light" asp-controller="Home" asp-action="MentorDetail" asp-route-id="@match.MaHuongDan">Xem mentor</a>
+                                        @if (match.TrangThai == "Mentor đã chấp nhận" || match.TrangThai == "Đã lên lịch")
+                                        {
+                                            <a class="btn btn-light" asp-action="Schedule" asp-route-id="@match.MaGhepNoi">Lên lịch học</a>
+                                        }
+                                        @if (hasReport && !hasReview)
+                                        {
+                                            <a class="btn btn-primary" asp-action="Evaluate" asp-route-id="@match.MaGhepNoi">Đánh giá mentor</a>
+                                        }
+                                        @if (hasReview)
+                                        {
+                                            <span>Đã đánh giá</span>
+                                        }
+                                    </footer>
+                                </article>
+                            }
+                        </div>
+                    }
+                </section>
+
+                <div class="flow-actions">
+                    <a class="btn btn-light" asp-action="Index">Quay lại danh sách</a>
+                    <a class="btn btn-primary" asp-action="Create">Tạo yêu cầu khác</a>
+                </div>
+            </section>
+
+            <aside class="request-summary-column">
+                <section class="flow-card mentor-suggestion-card">
+                    <h2>Mentor được đề xuất</h2>
+                    @if (mentors.Count == 0)
+                    {
+                        <p class="empty-note">Chưa có mentor phù hợp cho lĩnh vực này.</p>
+                    }
+                    else
+                    {
+                        <div class="suggested-mentor-list with-actions">
+                            @foreach (var mentor in mentors)
+                            {
+                                var alreadySent = matches.Any(m => m.MaHuongDan == mentor.MaHuongDan);
+                                <article>
+                                    <span>@mentor.HoTen.Substring(0, 1).ToUpper()</span>
+                                    <div>
+                                        <strong>@mentor.HoTen</strong>
+                                        <small>@mentor.ChuyenMon - @mentor.TaiHienTai ghép nối đang xử lý</small>
+                                        <div class="match-reasons">
+                                            @foreach (var reason in mentor.LyDoGoiY)
+                                            {
+                                                <span>@reason</span>
+                                            }
+                                        </div>
+                                        @if (mentor.LichRanhChung.Count > 0)
+                                        {
+                                            <div class="shared-mini-slots">
+                                                @foreach (var slot in mentor.LichRanhChung.Take(2))
+                                                {
+                                                    <span>@slot</span>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                    <b class="match-score">@mentor.DiemPhuHop.ToString("0")%</b>
+                                    @if (alreadySent)
+                                    {
+                                        <em>Đã gửi</em>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="DeXuatMentor" method="post">
+                                            <input type="hidden" name="yeuCauId" value="@Model.MaYeuCau" />
+                                            <input type="hidden" name="mentorId" value="@mentor.MaHuongDan" />
+                                            <button type="submit">Gửi</button>
+                                        </form>
+                                    }
+                                </article>
+                            }
+                        </div>
+                    }
+                </section>
+            </aside>
+        </div>
+    </section>
+</main>

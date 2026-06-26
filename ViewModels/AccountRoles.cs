@@ -1,4 +1,4 @@
-namespace StudyConnect.ViewModels;
+﻿namespace StudyConnect.ViewModels;
 
 public static class AccountRoles
 {

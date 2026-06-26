@@ -1,0 +1,63 @@
+﻿@model StudyConnect.ViewModels.MentorAvailabilityViewModel
+@{
+    ViewData["Title"] = "Cập nhật lịch rảnh mentor";
+    var slotGroups = new Dictionary<string, string[]>
+    {
+        ["Buổi sáng"] = new[] { "08:00|10:00", "10:00|12:00" },
+        ["Buổi chiều"] = new[] { "13:30|15:30", "15:30|17:30" },
+        ["Buổi tối"] = new[] { "18:00|20:00", "19:00|21:00" }
+    };
+    string DayName(int day) => day == 8 ? "Chủ nhật" : $"Thứ {day}";
+}
+
+<main class="study-flow-page">
+    <aside class="study-side-nav">
+        <a class="role-brand" asp-controller="Mentor" asp-action="Index">StudyConnect</a>
+        <p>Mentor</p>
+        <a asp-controller="Mentor" asp-action="Index">Dashboard mentor</a>
+        <a class="active" asp-controller="Mentor" asp-action="Availability">Lịch rảnh cá nhân</a>
+    </aside>
+
+    <section class="study-flow-main">
+        <div class="flow-breadcrumb">Mentor > Lịch rảnh cá nhân</div>
+        <header class="flow-title">
+            <div>
+                <h1>Cập nhật lịch rảnh</h1>
+                <p>Lịch rảnh này được dùng để hệ thống gợi ý ghép nối và kiểm tra khi sinh viên lên lịch học.</p>
+            </div>
+            <a class="btn btn-light" asp-action="Index" asp-fragment="lich-ranh">Quay lại</a>
+        </header>
+
+        <form asp-action="Availability" method="post" class="flow-card request-form-card">
+            <div asp-validation-summary="ModelOnly" class="alert error"></div>
+            <div class="mentor-availability-picker">
+                @foreach (var day in new[] { 2, 3, 4, 5, 6, 7, 8 })
+                {
+                    <section>
+                        <h3>@DayName(day)</h3>
+                        @foreach (var group in slotGroups)
+                        {
+                            <p>@group.Key</p>
+                            <div>
+                                @foreach (var slot in group.Value)
+                                {
+                                    var parts = slot.Split('|');
+                                    var value = $"{day}|{parts[0]}|{parts[1]}";
+                                    <label>
+                                        <input type="checkbox" name="LichRanhDaChon" value="@value" checked="@(Model.LichRanhDaChon.Contains(value))" />
+                                        <span>@parts[0] - @parts[1]</span>
+                                    </label>
+                                }
+                            </div>
+                        }
+                    </section>
+                }
+            </div>
+            <small asp-validation-for="LichRanhDaChon" class="field-validation-error"></small>
+            <div class="flow-actions">
+                <a class="btn btn-light" asp-action="Index" asp-fragment="lich-ranh">Hủy</a>
+                <button class="btn btn-primary" type="submit">Lưu lịch rảnh</button>
+            </div>
+        </form>
+    </section>
+</main>

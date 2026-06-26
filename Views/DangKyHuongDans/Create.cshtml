@@ -1,0 +1,121 @@
+﻿@model StudyConnect.ViewModels.MentorApplicationViewModel
+@{
+    ViewData["Title"] = "Đăng ký làm mentor";
+    var slotGroups = new Dictionary<string, string[]>
+    {
+        ["Buổi sáng"] = new[] { "08:00|10:00", "10:00|12:00" },
+        ["Buổi chiều"] = new[] { "13:30|15:30", "15:30|17:30" },
+        ["Buổi tối"] = new[] { "18:00|20:00", "19:00|21:00" }
+    };
+    string DayName(int day) => day == 8 ? "Chủ nhật" : $"Thứ {day}";
+}
+
+<main class="study-flow-page">
+    <aside class="study-side-nav">
+        <a class="role-brand" asp-controller="SinhVien" asp-action="Index">StudyConnect</a>
+        <p>Đăng ký mentor</p>
+        <a asp-controller="SinhVien" asp-action="Index">Dashboard sinh viên</a>
+        <a asp-controller="SinhVien" asp-action="HoSo">Hồ sơ & lịch rảnh</a>
+        <a class="active" asp-controller="DangKyHuongDans" asp-action="Create">Đăng ký làm mentor</a>
+        <a asp-controller="Home" asp-action="Hoc11">Học 1-1</a>
+    </aside>
+
+    <section class="study-flow-main">
+        <div class="flow-breadcrumb">Sinh viên > Đăng ký làm mentor</div>
+
+        @if (TempData["SuccessMessage"] is string success)
+        {
+            <div class="flow-alert success">@success</div>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.TrangThaiHienTai))
+        {
+            <div class="flow-alert">Đơn gần nhất của bạn đang ở trạng thái: <strong>@Model.TrangThaiHienTai</strong>.</div>
+        }
+
+        <header class="flow-title">
+            <div>
+                <h1>Đăng ký làm mentor</h1>
+                <p>Điền thông tin chuyên môn, minh chứng năng lực và lịch rảnh để cố vấn xét duyệt trước khi bạn trở thành mentor.</p>
+            </div>
+            <a class="btn btn-light" asp-controller="SinhVien" asp-action="Index">Quay lại dashboard</a>
+        </header>
+
+        <div class="request-layout schedule-layout-wide">
+            <form asp-action="Create" method="post" class="flow-card request-form-card">
+                <div asp-validation-summary="ModelOnly" class="alert error"></div>
+
+                <div class="flow-section-title"><span>1</span><h2>Chuyên môn đăng ký</h2></div>
+                <div class="request-grid two">
+                    <label class="request-field">
+                        <span>Lĩnh vực muốn hướng dẫn</span>
+                        <select asp-for="MaLinhVuc" asp-items="Model.LinhVucOptions"><option value="">Chọn lĩnh vực</option></select>
+                        <small asp-validation-for="MaLinhVuc"></small>
+                    </label>
+                    <label class="request-field">
+                        <span>Điểm môn / mức tự đánh giá</span>
+                        <input asp-for="DiemMon" type="number" step="0.1" min="0" max="10" placeholder="VD: 8.5" />
+                        <small asp-validation-for="DiemMon"></small>
+                    </label>
+                </div>
+
+                <label class="request-field">
+                    <span>Minh chứng</span>
+                    <input asp-for="MinhChung" placeholder="Link điểm môn, dự án, GitHub, chứng chỉ..." />
+                    <small asp-validation-for="MinhChung"></small>
+                </label>
+
+                <label class="request-field">
+                    <span>Kinh nghiệm và lý do muốn làm mentor</span>
+                    <textarea asp-for="LyDo" rows="6" placeholder="Bạn đã học/làm dự án gì, có thể hỗ trợ sinh viên ở mức nào, cách bạn hướng dẫn ra sao?"></textarea>
+                    <small asp-validation-for="LyDo"></small>
+                </label>
+
+                <div class="flow-section-title"><span>2</span><h2>Lịch rảnh nhận hỗ trợ 1-1</h2></div>
+                <div class="mentor-availability-picker">
+                    @foreach (var day in new[] { 2, 3, 4, 5, 6, 7, 8 })
+                    {
+                        <section>
+                            <h3>@DayName(day)</h3>
+                            @foreach (var group in slotGroups)
+                            {
+                                <p>@group.Key</p>
+                                <div>
+                                    @foreach (var slot in group.Value)
+                                    {
+                                        var parts = slot.Split('|');
+                                        var value = $"{day}|{parts[0]}|{parts[1]}";
+                                        <label>
+                                            <input type="checkbox" name="LichRanhDaChon" value="@value" checked="@(Model.LichRanhDaChon.Contains(value))" />
+                                            <span>@parts[0] - @parts[1]</span>
+                                        </label>
+                                    }
+                                </div>
+                            }
+                        </section>
+                    }
+                </div>
+                <small asp-validation-for="LichRanhDaChon" class="field-validation-error"></small>
+
+                <div class="flow-actions">
+                    <a class="btn btn-light" asp-controller="SinhVien" asp-action="Index">Hủy</a>
+                    <button class="btn btn-primary" type="submit">Gửi cố vấn duyệt</button>
+                </div>
+            </form>
+
+            <aside class="request-summary-column">
+                <section class="flow-card compact-summary">
+                    <h2>Quy trình xét duyệt</h2>
+                    <dl>
+                        <dt>1. Sinh viên gửi đơn</dt><dd>Gồm lĩnh vực, điểm môn, minh chứng, kinh nghiệm và lịch rảnh.</dd>
+                        <dt>2. Cố vấn xem chi tiết</dt><dd>Cố vấn kiểm tra năng lực chuyên môn và quyết định duyệt hoặc từ chối.</dd>
+                        <dt>3. Được duyệt</dt><dd>Tài khoản chuyển sang vai trò Mentor và xuất hiện trong danh sách gợi ý.</dd>
+                    </dl>
+                </section>
+            </aside>
+        </div>
+    </section>
+</main>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

@@ -1,11 +1,12 @@
-﻿@{
+﻿@model StudyConnect.ViewModels.Hoc11ViewModel
+@{
     ViewData["Title"] = "Học 1-1";
 }
 
 <header class="site-header">
     <a class="brand" asp-controller="Home" asp-action="Index" aria-label="StudyConnect trang chủ">
         <span class="brand-icon"><span></span><span></span><span></span></span>
-        <span><strong>StudyConnect</strong><small>Học 1-1 • Kết nối • Phát triển</small></span>
+        <span><strong>StudyConnect</strong><small>Học 1-1 - Kết nối - Phát triển</small></span>
     </a>
 
     <nav class="main-nav" aria-label="Điều hướng chính">
@@ -15,18 +16,21 @@
     </nav>
 
     <div class="header-actions">
-        <label class="search-box" aria-label="Tìm kiếm"><input type="search" placeholder="Tìm kiếm..." /><span>⌕</span></label>
+        <form class="search-box" asp-controller="Home" asp-action="Hoc11" method="get" aria-label="Tìm kiếm mentor">
+            <input type="search" name="keyword" value="@Model.Keyword" placeholder="Tìm mentor, kỹ năng..." />
+            <button type="submit" aria-label="Tìm kiếm">Tìm</button>
+        </form>
         @if (Context.Session.GetInt32("UserId").HasValue)
         {
-            <a class="btn btn-light" href="/TaiKhoans/Profile">Hồ sơ</a>
+            <a class="btn btn-light" asp-controller="TaiKhoans" asp-action="Profile">Hồ sơ</a>
             <form asp-controller="TaiKhoans" asp-action="Logout" method="post" class="inline-form">
                 <button class="btn btn-primary" type="submit">Đăng xuất</button>
             </form>
         }
         else
         {
-            <a class="btn btn-light" href="/TaiKhoans/Login">Đăng nhập</a>
-            <a class="btn btn-primary" href="/TaiKhoans/Create">Đăng ký</a>
+            <a class="btn btn-light" asp-controller="TaiKhoans" asp-action="Login">Đăng nhập</a>
+            <a class="btn btn-primary" asp-controller="TaiKhoans" asp-action="Create">Đăng ký</a>
         }
     </div>
 </header>
@@ -35,144 +39,161 @@
     <section class="one-hero">
         <div class="one-hero-inner">
             <div class="one-hero-copy">
-                <h1>Học 1-1 hiệu quả<br /><span>Cùng mentor phù hợp</span></h1>
-                <p>Tìm mentor giỏi, học đúng nhu cầu, tiến bộ mỗi ngày. Nền tảng kết nối sinh viên và người hướng dẫn chất lượng.</p>
+                <p class="pill">Quy trình hỗ trợ học tập 1-1</p>
+                <h1>Học đúng nhu cầu<br /><span>Cùng mentor phù hợp</span></h1>
+                <p>Đăng nhập, cập nhật hồ sơ học tập và lịch rảnh, tạo yêu cầu hỗ trợ, chọn mentor, lên lịch học, nhận báo cáo và đánh giá sau buổi học.</p>
                 <div class="one-hero-actions">
-                    <a class="btn btn-primary btn-large" href="/YeuCauHoTroHocTaps/Create">▣ Tạo yêu cầu hỗ trợ</a>
-                    <a class="btn btn-light btn-large" href="#mentor-goi-y">♙ Tìm mentor ngay</a>
+                    <a class="btn btn-primary btn-large" asp-controller="YeuCauHoTroHocTaps" asp-action="Create">Tạo yêu cầu hỗ trợ</a>
+                    <a class="btn btn-light btn-large" href="#mentor-goi-y">Tìm mentor ngay</a>
                 </div>
                 <div class="one-metrics">
-                    <div><span>▣</span><strong>2.500+</strong><small>Buổi học đã hoàn thành</small></div>
-                    <div><span>♙</span><strong>1.200+</strong><small>Mentor đồng hành</small></div>
-                    <div><span>☆</span><strong>4.8/5</strong><small>Đánh giá trung bình</small></div>
+                    <div><span class="metric-mark"></span><strong>@Model.CompletedSessionCount</strong><small>Buổi học đã ghi nhận</small></div>
+                    <div><span class="metric-mark"></span><strong>@Model.MentorCount</strong><small>Mentor đang hoạt động</small></div>
+                    <div><span class="metric-mark"></span><strong>@Model.AverageRating.ToString("0.0")/5</strong><small>Đánh giá trung bình</small></div>
                 </div>
             </div>
 
             <div class="one-hero-media">
                 <img src="~/images/home-hero-students.png" alt="Sinh viên học 1-1 cùng mentor" />
-                <div class="one-float one-float-left"><b>◎</b><strong>Học đúng nhu cầu</strong><small>Cá nhân hóa 1-1</small></div>
-                <div class="one-float one-float-top"><b>▦</b><strong>Lịch rảnh linh hoạt</strong><small>Dễ dàng sắp xếp</small></div>
-                <div class="one-float one-float-right"><b>▤</b><strong>Tiến bộ rõ ràng</strong><small>Theo dõi kết quả</small></div>
+                <div class="one-float one-float-left"><b>1</b><strong>Học đúng nhu cầu</strong><small>Cá nhân hóa 1-1</small></div>
+                <div class="one-float one-float-top"><b>2</b><strong>Lịch rảnh linh hoạt</strong><small>So khớp hai bên</small></div>
+                <div class="one-float one-float-right"><b>3</b><strong>Tiến bộ rõ ràng</strong><small>Báo cáo sau buổi học</small></div>
             </div>
+        </div>
+    </section>
+
+    <section class="one-detail-section" id="quy-trinh">
+        <div class="one-section-head centered"><h2>Luồng học 1-1</h2><p>Bám đúng phân tích chức năng của hệ thống.</p></div>
+        <div class="process-grid">
+            <article><span>01</span><h3>Cập nhật hồ sơ</h3><p>Sinh viên cập nhật kỹ năng, chuyên ngành, mục tiêu học và lịch rảnh.</p></article>
+            <article><span>02</span><h3>Tạo yêu cầu</h3><p>Chọn lĩnh vực, mô tả vấn đề và mức độ cần hỗ trợ.</p></article>
+            <article><span>03</span><h3>Ghép nối mentor</h3><p>Hệ thống đề xuất mentor theo chuyên môn, lịch rảnh, đánh giá và uy tín.</p></article>
+            <article><span>04</span><h3>Học và đánh giá</h3><p>Hai bên lên lịch, mentor lập báo cáo, sinh viên đánh giá sau buổi học.</p></article>
         </div>
     </section>
 
     <section class="mentor-search-panel" aria-labelledby="mentor-search-title">
         <h2 id="mentor-search-title">Tìm mentor phù hợp</h2>
-        <form class="mentor-search-form">
-            <label><span>♙</span><select><option>Chọn lĩnh vực</option><option>Lập trình Python</option><option>Cấu trúc dữ liệu</option><option>Cơ sở dữ liệu</option><option>AI / Machine Learning</option></select></label>
-            <label><span>▥</span><select><option>Chọn cấp độ</option><option>Mất gốc</option><option>Cơ bản</option><option>Trung cấp</option><option>Ôn thi / dự án</option></select></label>
-            <label><span>◷</span><select><option>Thời gian mong muốn</option><option>Tối trong tuần</option><option>Cuối tuần</option><option>Linh hoạt theo mentor</option></select></label>
-            <button type="button">⌕ Tìm kiếm</button>
+        <form class="mentor-search-form" asp-controller="Home" asp-action="Hoc11" method="get">
+            <label>
+                <span>Lĩnh vực</span>
+                <select name="linhVucId">
+                    <option value="">Tất cả lĩnh vực</option>
+                    @foreach (var option in Model.LinhVucOptions)
+                    {
+                        <option value="@option.Value" selected="@option.Selected">@option.Text</option>
+                    }
+                </select>
+            </label>
+            <label><span>Từ khóa</span><input type="search" name="keyword" value="@Model.Keyword" placeholder="VD: Java, SQL, ASP.NET" /></label>
+            <button type="submit">Tìm kiếm</button>
         </form>
         <div class="popular-tags">
             <span>Tìm kiếm phổ biến:</span>
-            <a href="#mentor-goi-y">Lập trình Python</a>
-            <a href="#mentor-goi-y">Cấu trúc dữ liệu & Giải thuật</a>
-            <a href="#mentor-goi-y">Cơ sở dữ liệu</a>
-            <a href="#mentor-goi-y">AI / Machine Learning</a>
-            <a href="#mentor-goi-y">An toàn thông tin</a>
-            <a href="#mentor-goi-y">Thiết kế UI/UX</a>
+            @foreach (var tag in Model.PopularTags)
+            {
+                <a asp-controller="Home" asp-action="Hoc11" asp-route-keyword="@tag" asp-fragment="mentor-goi-y">@tag</a>
+            }
         </div>
     </section>
 
     <section class="one-feature-strip" aria-label="Tính năng học 1-1">
-        <article><span class="blue">✤</span><div><h3>Gợi ý thông minh</h3><p>Hệ thống đề xuất mentor phù hợp dựa trên nhu cầu và mục tiêu học tập.</p></div></article>
-        <article><span class="green">▦</span><div><h3>Lịch học linh hoạt</h3><p>Tự chọn thời gian học phù hợp với lịch rảnh của bạn.</p></div></article>
-        <article><span class="purple">▣</span><div><h3>Học 1-1 hiệu quả</h3><p>Tập trung vào mục tiêu cá nhân, nhận hỗ trợ riêng từ mentor.</p></div></article>
-        <article><span class="orange">▤</span><div><h3>Theo dõi tiến độ</h3><p>Theo dõi buổi học, đánh giá và lịch sử học tập rõ ràng.</p></div></article>
-        <article><span class="pink">♙</span><div><h3>Cộng đồng tin cậy</h3><p>Kết nối với cộng đồng sinh viên và mentor chất lượng.</p></div></article>
+        <article><span class="blue">AI</span><div><h3>Gợi ý thông minh</h3><p>Đề xuất mentor dựa trên lĩnh vực, chuyên môn, uy tín, đánh giá và lịch rảnh.</p></div></article>
+        <article><span class="green">LR</span><div><h3>Lịch học linh hoạt</h3><p>So khớp lịch rảnh sinh viên và mentor trước khi lên lịch.</p></div></article>
+        <article><span class="purple">BC</span><div><h3>Báo cáo buổi học</h3><p>Mentor ghi nhận nội dung đã học, bài tập và mức độ tiếp thu.</p></div></article>
+        <article><span class="orange">DG</span><div><h3>Đánh giá mentor</h3><p>Sinh viên đánh giá sau báo cáo để cập nhật điểm uy tín.</p></div></article>
+        <article><span class="pink">LS</span><div><h3>Lịch sử học tập</h3><p>Theo dõi yêu cầu, ghép nối, lịch học và kết quả học 1-1.</p></div></article>
     </section>
 
     <section class="mentor-section" id="mentor-goi-y">
         <div class="one-section-head">
-            <h2>Mentor được gợi ý cho bạn</h2>
-            <a href="#">Xem tất cả</a>
-        </div>
-        <div class="mentor-carousel">
-            <button class="round-nav" type="button">‹</button>
-            <div class="mentor-grid">
-                <article class="mentor-profile-card">
-                    <span class="mentor-avatar male"></span><h3>Phạm Quốc Bảo <small>●</small></h3><p>Mentor</p><div class="rating">★ 4.9 (45)</div><div class="skill-row"><span>Python</span><span>AI / ML</span><span>SQL</span></div><p>Kinh nghiệm 2 năm giảng dạy Python và Machine Learning.</p><footer><small>Đã hỗ trợ 68 buổi</small><strong>Phù hợp 96%</strong></footer>
-                </article>
-                <article class="mentor-profile-card">
-                    <span class="mentor-avatar female"></span><h3>Trần Thị Mai <small>●</small></h3><p>Mentor</p><div class="rating">★ 4.8 (31)</div><div class="skill-row"><span>C++</span><span>CTDL & GT</span><span>OOP</span></div><p>Chuyên giúp sinh viên nắm vững tư duy giải thuật và lập trình C++.</p><footer><small>Đã hỗ trợ 52 buổi</small><strong>Phù hợp cao</strong></footer>
-                </article>
-                <article class="mentor-profile-card">
-                    <span class="mentor-avatar male two"></span><h3>Vũ Hoàng Nam <small>●</small></h3><p>Mentor</p><div class="rating">★ 4.8 (27)</div><div class="skill-row"><span>Java</span><span>Spring Boot</span><span>SQL</span></div><p>Backend Developer, kinh nghiệm thực chiến Java & Spring Boot.</p><footer><small>Đã hỗ trợ 41 buổi</small><strong>Đang rảnh</strong></footer>
-                </article>
-                <article class="mentor-profile-card">
-                    <span class="mentor-avatar female two"></span><h3>Lê Minh Châu <small>●</small></h3><p>Mentor</p><div class="rating">★ 4.7 (22)</div><div class="skill-row"><span>Data Analysis</span><span>Excel</span><span>SQL</span></div><p>Phân tích dữ liệu, trực quan hóa và xử lý dữ liệu thực tế.</p><footer><small>Đã hỗ trợ 36 buổi</small><strong>Phù hợp 91%</strong></footer>
-                </article>
+            <div>
+                <h2>Mentor được gợi ý</h2>
+                <p>Dữ liệu lấy trực tiếp từ bảng mentor, chuyên môn, lịch rảnh, đánh giá và ghép nối.</p>
             </div>
-            <button class="round-nav" type="button">›</button>
+            <a asp-controller="YeuCauHoTroHocTaps" asp-action="Create">Tạo yêu cầu</a>
+        </div>
+        <div class="mentor-list-shell">
+            <div class="mentor-grid full-grid">
+                @if (Model.MentorGoiY.Count == 0)
+                {
+                    <article class="mentor-profile-card mentor-empty-card">
+                        <h3>Chưa có mentor phù hợp</h3>
+                        <p>Hãy thêm mentor, chuyên môn và lịch rảnh trong dữ liệu hệ thống.</p>
+                    </article>
+                }
+                else
+                {
+                    @for (var i = 0; i < Model.MentorGoiY.Count; i++)
+                    {
+                        var mentor = Model.MentorGoiY[i];
+                        var avatarClass = i % 4 == 1 ? "female" : i % 4 == 2 ? "two" : i % 4 == 3 ? "female two" : "male";
+                        <a class="mentor-profile-card mentor-profile-link" asp-controller="Home" asp-action="MentorDetail" asp-route-id="@mentor.MaHuongDan">
+                            @if (!string.IsNullOrWhiteSpace(mentor.AnhDaiDien))
+                            {
+                                <img class="mentor-avatar-img" src="@mentor.AnhDaiDien" alt="@mentor.HoTen" />
+                            }
+                            else
+                            {
+                                <span class="mentor-avatar @avatarClass"></span>
+                            }
+                            <h3>@mentor.HoTen</h3>
+                            <p>@mentor.LoaiNguoiHuongDan</p>
+                            <div class="rating">Điểm @mentor.DiemDanhGia.ToString("0.0") (@mentor.SoLuotDanhGia) - Uy tín @mentor.DiemUyTin.ToString("0.0")</div>
+                            <div class="skill-row">
+                                @foreach (var skill in mentor.ChuyenMon)
+                                {
+                                    <span>@skill</span>
+                                }
+                            </div>
+                            <p>@mentor.MoTaKinhNghiem</p>
+                            <p class="mentor-live-data">Lịch rảnh: @mentor.TrangThaiLichRanh</p>
+                            <footer><small>Đã hỗ trợ @mentor.SoBuoiHoTro buổi</small><strong>Phù hợp @mentor.TyLePhuHop%</strong></footer>
+                            <span class="mentor-card-cta">Xem chi tiết và ghép nối</span>
+                        </a>
+                    }
+                }
+            </div>
         </div>
     </section>
 
-    <section class="one-resource-rank-grid" id="tai-lieu">
+    <section class="one-resource-rank-grid">
         <div class="one-learning-resources">
             <div class="one-section-head">
                 <div>
-                    <p class="eyebrow">Tài liệu hỗ trợ học 1-1</p>
-                    <h2>Kho tài liệu theo nhu cầu học</h2>
+                    <p class="eyebrow">Tài liệu tích hợp</p>
+                    <h2>Tài liệu hỗ trợ theo nhu cầu học</h2>
                 </div>
-                <a href="#">Xem thêm</a>
-            </div>
-            <div class="resource-filter-row">
-                <label><input type="search" placeholder="Tìm tài liệu, chủ đề, tác giả..." /></label>
-                <select><option>Tất cả danh mục</option><option>Lập trình</option><option>Cơ sở dữ liệu</option><option>AI / Machine Learning</option></select>
-                <button type="button">Lọc</button>
             </div>
             <div class="learning-resource-list">
-                <article><span class="doc-icon blue">PDF</span><div><h3>Giáo trình Python cơ bản</h3><p>Phạm Quốc Bảo • 1.2k lượt xem • ★ 4.8</p></div><small>Python</small></article>
-                <article><span class="doc-icon green">PDF</span><div><h3>Cấu trúc dữ liệu và giải thuật - Tóm tắt</h3><p>Trần Thị Mai • 856 lượt xem • ★ 4.7</p></div><small>CTDL & GT</small></article>
-                <article><span class="doc-icon purple">PPT</span><div><h3>Machine Learning cơ bản cho người mới</h3><p>Vũ Hoàng Nam • 1.5k lượt xem • ★ 4.9</p></div><small>AI / ML</small></article>
-                <article><span class="doc-icon orange">DOC</span><div><h3>SQL nâng cao và bài tập thực hành</h3><p>Lê Minh Châu • 743 lượt xem • ★ 4.6</p></div><small>Cơ sở dữ liệu</small></article>
+                <article><span class="doc-icon blue">PDF</span><div><h3>Giáo trình Python cơ bản</h3><p>Dùng cho yêu cầu nhập môn lập trình và xử lý dữ liệu.</p></div><small>Python</small></article>
+                <article><span class="doc-icon green">PDF</span><div><h3>Cấu trúc dữ liệu và giải thuật</h3><p>Tài liệu ôn tập trước khi học cùng mentor.</p></div><small>CTDL</small></article>
+                <article><span class="doc-icon purple">PPT</span><div><h3>Machine Learning cơ bản</h3><p>Gợi ý cho sinh viên chọn lĩnh vực AI.</p></div><small>AI</small></article>
+                <article><span class="doc-icon orange">DOC</span><div><h3>SQL nâng cao</h3><p>Hỗ trợ các yêu cầu về cơ sở dữ liệu.</p></div><small>SQL</small></article>
             </div>
         </div>
 
         <aside class="one-ranking-panel">
             <div class="one-section-head compact">
                 <div>
-                    <p class="eyebrow">Xếp hạng học tập</p>
-                    <h2>Top mentor tháng</h2>
+                    <p class="eyebrow">Xếp hạng tích hợp</p>
+                    <h2>Top mentor uy tín</h2>
                 </div>
             </div>
-            <div class="podium-row">
-                <article class="second"><span>2</span><strong>Vũ Hoàng Nam</strong><small>9.235 điểm</small></article>
-                <article class="first"><span>1</span><strong>Phạm Quốc Bảo</strong><small>9.876 điểm</small></article>
-                <article class="third"><span>3</span><strong>Trần Thị Mai</strong><small>8.742 điểm</small></article>
-            </div>
-            <div class="rank-table-lite">
-                <div><span>4</span><strong>Lê Minh Châu</strong><small>Data Analysis</small><b>8.125</b></div>
-                <div><span>5</span><strong>Nguyễn Văn Tùng</strong><small>Web Development</small><b>7.893</b></div>
-                <div><span>6</span><strong>Đỗ Quang Huy</strong><small>AI / Machine Learning</small><b>7.562</b></div>
-            </div>
+            @if (Model.MentorGoiY.Count == 0)
+            {
+                <p class="ranking-empty">Chưa có dữ liệu xếp hạng mentor.</p>
+            }
+            else
+            {
+                var topMentors = Model.MentorGoiY.OrderByDescending(m => m.DiemUyTin).Take(6).ToList();
+                <div class="rank-table-lite">
+                    @for (var i = 0; i < topMentors.Count; i++)
+                    {
+                        <div><span>@(i + 1)</span><strong>@topMentors[i].HoTen</strong><small>@string.Join(", ", topMentors[i].ChuyenMon.Take(1))</small><b>@topMentors[i].DiemUyTin.ToString("0.0")</b></div>
+                    }
+                </div>
+            }
         </aside>
-    </section>
-
-    <section class="one-detail-section" id="quy-trinh">
-        <div class="one-section-head centered"><h2>Quy trình học 1-1</h2><p>Từ nhu cầu học tập đến buổi học hoàn chỉnh chỉ trong vài bước.</p></div>
-        <div class="process-grid">
-            <article><span>01</span><h3>Tạo yêu cầu</h3><p>Chọn môn học, mục tiêu, cấp độ hiện tại và khung giờ mong muốn.</p></article>
-            <article><span>02</span><h3>Ghép mentor</h3><p>Hệ thống đề xuất mentor dựa trên chuyên môn, lịch rảnh, đánh giá và mức độ phù hợp.</p></article>
-            <article><span>03</span><h3>Xác nhận lịch</h3><p>Sinh viên và mentor thống nhất thời gian, nội dung học và hình thức học.</p></article>
-            <article><span>04</span><h3>Báo cáo tiến độ</h3><p>Mentor ghi nhận nội dung đã học, bài tập, đánh giá và hướng học tiếp theo.</p></article>
-        </div>
-    </section>
-
-    <section class="one-detail-section two-col-detail" id="tai-lieu">
-        <div>
-            <p class="pill">Bổ sung chi tiết</p>
-            <h2>Không chỉ tìm mentor, bạn còn quản lý toàn bộ quá trình học</h2>
-            <p>Trang Học 1-1 hỗ trợ tạo yêu cầu, lọc mentor, xem hồ sơ, đặt lịch, theo dõi báo cáo buổi học và đánh giá chất lượng sau mỗi buổi.</p>
-            <div class="detail-checks"><span>Lịch học cá nhân</span><span>Tài liệu theo môn</span><span>Điểm uy tín mentor</span><span>Nhắc lịch và báo cáo</span></div>
-        </div>
-        <div class="learning-dashboard-card">
-            <h3>Lịch học sắp tới</h3>
-            <div><strong>18:30 hôm nay</strong><span>Cấu trúc dữ liệu với Trần Thị Mai</span></div>
-            <div><strong>20:00 thứ Bảy</strong><span>Python cơ bản với Phạm Quốc Bảo</span></div>
-            <div><strong>09:00 Chủ nhật</strong><span>SQL thực hành với Lê Minh Châu</span></div>
-        </div>
     </section>
 </main>

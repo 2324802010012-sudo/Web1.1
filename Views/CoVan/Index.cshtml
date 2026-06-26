@@ -1,5 +1,10 @@
+﻿@using StudyConnect.Models
+@using StudyConnect.ViewModels
 @{
-    ViewData["Title"] = "Dashboard giảng viên";
+    ViewData["Title"] = "Dashboard cố vấn";
+    var mentors = ViewBag.ManagedMentors as List<ManagedMentorViewModel> ?? [];
+    var pendingApplications = ViewBag.PendingMentorApplications as List<DangKyHuongDan> ?? [];
+    var notifications = ViewBag.Notifications as List<DashboardNotificationViewModel> ?? [];
 }
 
 <main class="role-dashboard">
@@ -7,8 +12,9 @@
         <a class="role-brand" asp-controller="Home" asp-action="Index">StudyConnect</a>
         <p>Giảng viên / Cố vấn</p>
         <a class="active" href="#tong-quan">Tổng quan</a>
+        <a href="#thong-bao">Thông báo</a>
         <a href="#duyet-mentor">Duyệt mentor</a>
-        <a href="#chat-luong">Chất lượng học tập</a>
+        <a href="#mentor-quan-ly">Mentor quản lý</a>
         <a asp-controller="TaiKhoans" asp-action="Profile">Hồ sơ cá nhân</a>
     </aside>
 
@@ -17,34 +23,108 @@
             <div>
                 <p class="eyebrow">Đúng vai trò: Giảng viên / Cố vấn</p>
                 <h1>Theo dõi chất lượng hỗ trợ học tập</h1>
-                <span>Duyệt chuyên môn mentor, theo dõi báo cáo buổi học và thống kê chất lượng học tập 1-1.</span>
+                <span>Duyệt hồ sơ sinh viên đăng ký làm mentor, quản lý mentor và theo dõi chất lượng học tập 1-1.</span>
             </div>
-            <form asp-controller="TaiKhoans" asp-action="Logout" method="post"><button class="btn btn-outline">Đăng xuất</button></form>
+            <form asp-controller="TaiKhoans" asp-action="Logout" method="post"><button class="btn btn-outline" type="submit">Đăng xuất</button></form>
         </header>
+
+        @if (TempData["SuccessMessage"] is string success)
+        {
+            <div class="flow-alert success">@success</div>
+        }
 
         <section class="role-stats" id="tong-quan">
             <article><small>Hồ sơ chờ duyệt</small><strong>@ViewBag.HoSoChoDuyet</strong></article>
-            <article><small>Mentor đang có</small><strong>@ViewBag.Mentor</strong></article>
+            <article><small>Mentor đang quản lý</small><strong>@ViewBag.Mentor</strong></article>
             <article><small>Yêu cầu học tập</small><strong>@ViewBag.YeuCau</strong></article>
             <article><small>Báo cáo buổi học</small><strong>@ViewBag.BaoCao</strong></article>
             <article><small>Đánh giá</small><strong>@ViewBag.DanhGia</strong></article>
         </section>
 
-        <section class="role-panel" id="duyet-mentor">
-            <div class="role-panel-head"><h2>Duyệt chuyên môn mentor</h2></div>
-            <div class="role-feature-grid">
-                <article><span>01</span><h3>Xem hồ sơ đăng ký mentor</h3><p>Kiểm tra lĩnh vực hướng dẫn, điểm môn/GPA, kỹ năng, kinh nghiệm và minh chứng.</p></article>
-                <article><span>02</span><h3>Duyệt hoặc từ chối</h3><p>Đánh giá năng lực chuyên môn; yêu cầu bổ sung minh chứng nếu hồ sơ chưa đủ.</p></article>
-                <article><span>03</span><h3>Theo dõi thống kê mentor</h3><p>Xem đánh giá, điểm uy tín, tỷ lệ hoàn thành và phản hồi từ sinh viên.</p></article>
+        <section class="role-panel" id="thong-bao">
+            <div class="role-panel-head"><h2>Thông báo cần xử lý</h2><strong>@notifications.Count</strong></div>
+            <div class="dashboard-notification-list">
+                @if (notifications.Count == 0)
+                {
+                    <article><strong>Không có thông báo mới</strong><p>Đơn đăng ký mentor mới sẽ hiển thị tại đây.</p></article>
+                }
+                else
+                {
+                    @foreach (var item in notifications)
+                    {
+                        <article class="@item.Tone">
+                            <strong>@item.Title</strong>
+                            <p>@item.Message</p>
+                            @if (!string.IsNullOrWhiteSpace(item.Url))
+                            {
+                                <a href="@item.Url">Xem chi tiết</a>
+                            }
+                        </article>
+                    }
+                }
             </div>
         </section>
 
-        <section class="role-panel" id="chat-luong">
-            <div class="role-panel-head"><h2>Phạm vi quyền hạn</h2></div>
-            <div class="role-note-list">
-                <p>Giảng viên/Cố vấn không xét duyệt Phó chủ nhiệm CLB và không can thiệp quy trình bầu cử nội bộ CLB.</p>
-                <p>Vai trò này tập trung vào chất lượng học tập, duyệt chuyên môn mentor và báo cáo tổng hợp hỗ trợ học tập 1-1.</p>
+        <section class="role-panel" id="duyet-mentor">
+            <div class="role-panel-head">
+                <div>
+                    <p class="eyebrow">Đăng ký làm mentor</p>
+                    <h2>Hồ sơ chờ cố vấn duyệt</h2>
+                </div>
+                <strong>@pendingApplications.Count hồ sơ</strong>
             </div>
+
+            @if (pendingApplications.Count == 0)
+            {
+                <div class="empty-state"><h3>Không có hồ sơ chờ duyệt</h3><p>Khi sinh viên gửi đăng ký làm mentor, hồ sơ sẽ xuất hiện tại đây.</p></div>
+            }
+            else
+            {
+                <div class="mentor-application-list">
+                    @foreach (var item in pendingApplications)
+                    {
+                        <article>
+                            <div>
+                                <span class="status-pill">@item.TrangThaiDuyet</span>
+                                <h3>@item.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen</h3>
+                                <p>@item.MaLinhVucNavigation.TenLinhVuc - Điểm môn: @(item.DiemMon?.ToString("0.0") ?? "Chưa nhập")</p>
+                            </div>
+                            <a class="btn btn-primary" asp-action="DangKyMentorDetails" asp-route-id="@item.MaDangKy">Xem chi tiết</a>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="role-panel" id="mentor-quan-ly">
+            <div class="role-panel-head">
+                <div>
+                    <p class="eyebrow">Quản lý bởi cố vấn</p>
+                    <h2>Danh sách mentor đang hoạt động</h2>
+                </div>
+                <strong>@mentors.Count mentor</strong>
+            </div>
+
+            @if (mentors.Count == 0)
+            {
+                <div class="empty-state"><h3>Chưa có mentor</h3><p>Khi cố vấn duyệt mentor, danh sách sẽ hiển thị tại đây.</p></div>
+            }
+            else
+            {
+                <div class="managed-mentor-table">
+                    <div class="managed-mentor-head"><span>Mentor</span><span>Chuyên môn</span><span>Đánh giá</span><span>Uy tín</span><span>Trạng thái</span></div>
+                    @foreach (var mentor in mentors)
+                    {
+                        <div>
+                            <strong>@mentor.HoTen<small>@mentor.Email</small></strong>
+                            <span>@mentor.ChuyenMon</span>
+                            <b>@mentor.DiemDanhGia.ToString("0.0") (@mentor.SoLuotDanhGia)</b>
+                            <b>@mentor.DiemUyTin.ToString("0.00")</b>
+                            <em>@mentor.TrangThai</em>
+                        </div>
+                    }
+                </div>
+            }
         </section>
     </section>
 </main>

@@ -1,5 +1,23 @@
-﻿@{
+﻿@model StudyConnect.ViewModels.ClubCommunityViewModel
+@using StudyConnect.Models
+@{
     ViewData["Title"] = "Cộng đồng CLB";
+    var isLoggedIn = Context.Session.GetInt32("UserId").HasValue;
+    var now = DateTime.Now;
+
+    bool IsMember(int clbId) => Model.MyMemberships.Any(t => t.MaClb == clbId);
+    bool IsElectionOpen(DotDeCuPhoChuNhiem dot)
+    {
+        var activeStatus = dot.TrangThai == null || dot.TrangThai == "Hoạt động" || dot.TrangThai == "Đang diễn ra" || dot.TrangThai == "Mở";
+        return activeStatus && dot.ThoiGianBatDau <= now && dot.ThoiGianKetThuc >= now;
+    }
+
+    string LogoText(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "CLB";
+        var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return words.Length == 1 ? words[0][0].ToString().ToUpperInvariant() : string.Concat(words.Take(2).Select(w => w[0])).ToUpperInvariant();
+    }
 }
 
 <header class="site-header clb-topbar">
@@ -16,7 +34,7 @@
 
     <div class="header-actions">
         <label class="search-box clb-search" aria-label="Tìm kiếm CLB"><input type="search" placeholder="Tìm kiếm CLB, hoạt động..." /><span>⌕</span></label>
-        @if (Context.Session.GetInt32("UserId").HasValue)
+        @if (isLoggedIn)
         {
             <a class="btn btn-light" href="/TaiKhoans/Profile">Hồ sơ</a>
             <form asp-controller="TaiKhoans" asp-action="Logout" method="post" class="inline-form">
@@ -25,7 +43,7 @@
         }
         else
         {
-            <a class="btn btn-light" href="/TaiKhoans/Login">Đăng nhập</a>
+            <a class="btn btn-light" href="/TaiKhoans/Login?returnUrl=/Home/CauLacBo">Đăng nhập</a>
             <a class="btn btn-primary" href="/TaiKhoans/Create">Đăng ký</a>
         }
     </div>
@@ -38,33 +56,32 @@
             <a class="active" href="#kham-pha-clb"><span>◎</span>Khám phá CLB</a>
             <a href="#clb-cua-toi"><span>✤</span>CLB của tôi</a>
             <a href="#hoat-dong-clb"><span>▦</span>Hoạt động</a>
-            <a href="#bai-viet-clb"><span>▣</span>Bài viết</a>
-            <a href="#tai-lieu-clb"><span>▤</span>Tài liệu chung</a>
+            <a href="#tai-lieu-clb"><span>▤</span>Tài liệu CLB</a>
             <a href="#bau-cu"><span>♙</span>Bầu Phó chủ nhiệm</a>
-        </div>
-        <div class="side-group">
-            <p>Quản lý CLB tham gia</p>
-            <a href="#thanh-vien"><span>♙</span>Thành viên</a>
-            <a href="#nhiem-vu"><span>◇</span>Nhiệm vụ của tôi</a>
-        </div>
-        <div class="side-group">
-            <p>Khác</p>
-            <a href="#xep-hang-clb"><span>♕</span>Bảng xếp hạng CLB</a>
-            <a href="#"><span>⚙</span>Cài đặt</a>
+            <a href="#ket-qua-bau-cu"><span>♕</span>Kết quả bầu chọn</a>
         </div>
         <div class="club-create-card">
             <img src="~/images/club-community-hero.png" alt="Sinh viên tham gia cộng đồng CLB" />
-            <h3>Tạo hoặc tham gia CLB</h3>
-            <p>Kết nối cùng những người có chung đam mê.</p>
-            <a class="btn btn-outline" href="#">Tạo CLB ngay</a>
+            <h3>Tham gia cộng đồng</h3>
+            <p>Vào CLB để xem hoạt động, nhận tài liệu và tham gia bầu chọn.</p>
+            <a class="btn btn-outline" href="#featured-clubs">Khám phá CLB</a>
         </div>
     </aside>
 
     <section class="club-content" id="kham-pha-clb">
+        @if (TempData["Success"] is string success)
+        {
+            <div class="alert success-alert">@success</div>
+        }
+        @if (TempData["Error"] is string error)
+        {
+            <div class="alert error-alert">@error</div>
+        }
+
         <section class="club-hero-card">
             <div>
                 <h1>Cộng đồng CLB - Kết nối đam mê</h1>
-                <p>Tham gia các câu lạc bộ, học hỏi kiến thức, chia sẻ tài liệu và cùng nhau phát triển kỹ năng.</p>
+                <p>Tham gia câu lạc bộ, xem hoạt động, chia sẻ tài liệu và cùng bầu chọn Phó chủ nhiệm theo đúng quy trình của hệ thống.</p>
                 <a class="btn btn-light btn-large" href="#featured-clubs">Khám phá CLB</a>
             </div>
             <div class="club-hero-art">
@@ -74,95 +91,249 @@
         </section>
 
         <section class="club-panel" id="featured-clubs">
-            <div class="club-panel-head"><h2>CLB nổi bật</h2><a href="#">Xem tất cả</a></div>
-            <div class="featured-club-grid">
-                <article><span class="club-logo ai-logo">AI</span><h3>AI Club</h3><small>Công nghệ</small><p>512 thành viên</p><p>Nghiên cứu và ứng dụng AI trong học tập và thực tế.</p><button>Tham gia</button></article>
-                <article><span class="club-logo code-logo">&lt;/&gt;</span><h3>Code Warriors</h3><small>Lập trình</small><p>684 thành viên</p><p>Nơi chia sẻ kiến thức lập trình, thuật toán và dự án thực tế.</p><button>Tham gia</button></article>
-                <article><span class="club-logo shield-logo">⬟</span><h3>Cyber Security Club</h3><small>An toàn thông tin</small><p>432 thành viên</p><p>Cùng nhau học tập và nâng cao kiến thức về ATTT.</p><button>Tham gia</button></article>
-                <article><span class="club-logo iot-logo">▣</span><h3>IoT & Embedded</h3><small>Kỹ thuật</small><p>298 thành viên</p><p>Đam mê IoT, nhúng và các dự án phần cứng sáng tạo.</p><button>Tham gia</button></article>
-                <article><span class="club-logo data-logo">▥</span><h3>Data Science Club</h3><small>Dữ liệu</small><p>367 thành viên</p><p>Phân tích dữ liệu, Machine Learning và trực quan hóa dữ liệu.</p><button>Tham gia</button></article>
+            <div class="club-panel-head"><h2>CLB nổi bật</h2><a href="#clb-cua-toi">CLB của tôi</a></div>
+            <div class="featured-club-grid dynamic-club-grid">
+                @foreach (var club in Model.Clubs.Take(8))
+                {
+                    var memberCount = Model.MemberCounts.TryGetValue(club.MaClb, out var featuredCount) ? featuredCount : 0;
+                    var joined = IsMember(club.MaClb);
+                    <article>
+                        <span class="club-logo ai-logo">@LogoText(club.TenClb)</span>
+                        <h3>@club.TenClb</h3>
+                        <small>@(club.TrangThai ?? "Hoạt động")</small>
+                        <p>@memberCount thành viên</p>
+                        <p>@(string.IsNullOrWhiteSpace(club.MoTa) ? "Không gian học tập, chia sẻ tài liệu và tổ chức hoạt động CLB." : club.MoTa)</p>
+                        @if (!isLoggedIn)
+                        {
+                            <a class="club-card-action" href="/TaiKhoans/Login?returnUrl=/Home/CauLacBo">Đăng nhập để tham gia</a>
+                        }
+                        else if (joined)
+                        {
+                            <span class="club-status-badge">Đã tham gia</span>
+                        }
+                        else
+                        {
+                            <form asp-controller="Clb" asp-action="Join" method="post" class="club-action-form">
+                                <input type="hidden" name="clbId" value="@club.MaClb" />
+                                <button type="submit">Tham gia</button>
+                            </form>
+                        }
+                    </article>
+                }
             </div>
         </section>
 
-        <section class="club-panel category-panel">
-            <h2>Danh mục CLB</h2>
-            <div class="club-category-grid">
-                <article><span class="blue">▣</span><strong>Công nghệ</strong><small>16 CLB</small></article>
-                <article><span class="green">⚙</span><strong>Kỹ thuật</strong><small>12 CLB</small></article>
-                <article><span class="orange">◔</span><strong>Kinh tế</strong><small>8 CLB</small></article>
-                <article><span class="pink">◎</span><strong>Ngoại ngữ</strong><small>6 CLB</small></article>
-                <article><span class="red-soft">♥</span><strong>Thiện nguyện</strong><small>5 CLB</small></article>
-                <article><span class="purple">✿</span><strong>Nghệ thuật</strong><small>4 CLB</small></article>
+        <section class="club-panel" id="hoat-dong-clb">
+            <div class="club-panel-head"><h2>Hoạt động CLB</h2><a href="#tai-lieu-clb">Xem tài liệu</a></div>
+            <div class="club-feed">
+                @if (!Model.Activities.Any())
+                {
+                    <p class="empty-text">Chưa có hoạt động CLB nào được đăng.</p>
+                }
+                @foreach (var activity in Model.Activities)
+                {
+                    <div>
+                        <span class="blue">@LogoText(activity.MaClbNavigation.TenClb)</span>
+                        <p><strong>@activity.MaClbNavigation.TenClb</strong> - @activity.TieuDe<br /><small>@activity.NoiDung</small></p>
+                        <time>@((activity.ThoiGian ?? activity.NgayDang)?.ToString("dd/MM HH:mm") ?? "Chưa đặt lịch")</time>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <section class="club-panel" id="tai-lieu-clb">
+            <div class="club-panel-head"><h2>Tài liệu CLB</h2><a href="#featured-clubs">Tham gia CLB</a></div>
+            <div class="club-document-list">
+                @if (!Model.Documents.Any())
+                {
+                    <p class="empty-text">Chưa có tài liệu CLB nào được chia sẻ.</p>
+                }
+                @foreach (var document in Model.Documents)
+                {
+                    <article>
+                        <span class="club-doc-icon">PDF</span>
+                        <div>
+                            <h3>@document.TieuDe</h3>
+                            <p>@(document.MoTa ?? "Tài liệu học tập được chia sẻ trong cộng đồng CLB.")</p>
+                            <small>@document.MaClbNavigation.TenClb • @(document.NgayDang?.ToString("dd/MM/yyyy") ?? "Chưa rõ ngày")</small>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(document.TepDinhKem))
+                        {
+                            <a class="btn btn-outline" href="@document.TepDinhKem">Mở</a>
+                        }
+                    </article>
+                }
             </div>
         </section>
 
         <section class="club-panel election-panel" id="bau-cu">
             <div class="club-panel-head">
                 <div>
-                    <p class="eyebrow">Sự kiện CLB</p>
-                    <h2>Bầu Phó ban chủ nhiệm CLB</h2>
+                    <p class="eyebrow">Quy trình CLB</p>
+                    <h2>Ứng cử, đề cử và bỏ phiếu Phó chủ nhiệm</h2>
                 </div>
-                <a href="#">Xem thể lệ</a>
+                <a href="#ket-qua-bau-cu">Xem kết quả</a>
             </div>
-            <div class="election-layout">
-                <div class="election-main">
-                    <h3>Đợt bầu cử Phó ban chủ nhiệm nhiệm kỳ 2026</h3>
-                    <p>Thành viên đề cử, ứng cử và bỏ phiếu trực tuyến để chọn đại diện hỗ trợ điều phối hoạt động, tài liệu và kết nối mentor cho từng CLB.</p>
-                    <div class="election-actions">
-                        <a class="btn btn-primary" href="#">Ứng cử ngay</a>
-                        <a class="btn btn-outline" href="#">Xem ứng viên</a>
-                    </div>
-                    <div class="election-steps">
-                        <article><span>1</span><strong>Đề cử</strong><small>24/06 - 28/06</small></article>
-                        <article><span>2</span><strong>Trình bày kế hoạch</strong><small>29/06 - 01/07</small></article>
-                        <article><span>3</span><strong>Bỏ phiếu</strong><small>02/07 • 19:00</small></article>
-                    </div>
-                </div>
-                <div class="candidate-list">
-                    <article><span>PB</span><div><strong>Phạm Quốc Bảo</strong><small>AI Club • Điều phối học thuật</small></div></article>
-                    <article><span>TM</span><div><strong>Trần Thị Mai</strong><small>Code Warriors • Quản lý tài liệu</small></div></article>
-                    <article><span>MC</span><div><strong>Lê Minh Châu</strong><small>Data Science Club • Tổ chức sự kiện</small></div></article>
-                </div>
-            </div>
-        </section>
 
-        <section class="club-panel" id="hoat-dong-clb">
-            <div class="club-panel-head"><h2>Hoạt động mới nhất từ các CLB</h2><a href="#">Xem tất cả</a></div>
-            <div class="club-feed">
-                <div><span class="blue">▣</span><p><strong>AI Club</strong> đã đăng bài viết mới: “Ứng dụng ChatGPT trong học tập hiệu quả”</p><time>2 giờ trước</time></div>
-                <div><span class="green">◇</span><p><strong>Code Warriors</strong> đã chia sẻ tài liệu mới: “Giải thuật sắp xếp và tìm kiếm”</p><time>4 giờ trước</time></div>
-                <div><span class="purple">▣</span><p><strong>Cyber Security Club</strong> đã tạo sự kiện: “Workshop: Phòng chống tấn công mạng”</p><time>6 giờ trước</time></div>
-                <div><span class="orange">▦</span><p><strong>IoT & Embedded</strong> đã đăng thông báo tuyển thành viên mới</p><time>8 giờ trước</time></div>
+            @if (!Model.Elections.Any())
+            {
+                <p class="empty-text">Chưa có đợt bầu chọn Phó chủ nhiệm nào.</p>
+            }
+
+            <span id="ket-qua-bau-cu" class="anchor-target"></span>
+            <div class="club-election-stack">
+                @foreach (var dot in Model.Elections)
+                {
+                    var canAct = Model.CurrentSinhVienId.HasValue && IsMember(dot.MaClb) && IsElectionOpen(dot);
+                    var candidates = dot.UngVienPhoChuNhiems
+                        .Where(u => u.TrangThai == null || u.TrangThai == "Hợp lệ" || u.TrangThai == "Đã duyệt")
+                        .OrderByDescending(u => Model.CandidateVoteCounts.TryGetValue(u.MaUngVien, out var candidateVotes) ? candidateVotes : 0)
+                        .ToList();
+                    var totalVotes = dot.PhieuBauPhoChuNhiems.Count;
+                    var members = dot.MaClbNavigation.ThanhVienClbs
+                        .Where(t => t.TrangThai == null || t.TrangThai == "Hoạt động")
+                        .OrderBy(t => t.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen)
+                        .ToList();
+                    var votedCandidate = Model.MyVotesByElection.TryGetValue(dot.MaDot, out var selectedCandidate) ? selectedCandidate : 0;
+
+                    <article class="club-election-card" id="dot-@dot.MaDot">
+                        <div class="club-election-head">
+                            <div>
+                                <small>@dot.MaClbNavigation.TenClb</small>
+                                <h3>@dot.TenDot</h3>
+                                <p>@dot.ThoiGianBatDau.ToString("dd/MM/yyyy HH:mm") - @dot.ThoiGianKetThuc.ToString("dd/MM/yyyy HH:mm")</p>
+                            </div>
+                            <span class="club-status-badge @(IsElectionOpen(dot) ? "is-open" : "")">@(IsElectionOpen(dot) ? "Đang mở" : (dot.TrangThai ?? "Đã đóng"))</span>
+                        </div>
+
+                        @if (!isLoggedIn)
+                        {
+                            <div class="club-login-note">Đăng nhập bằng tài khoản sinh viên để ứng cử, đề cử và bỏ phiếu.</div>
+                        }
+                        else if (!IsMember(dot.MaClb))
+                        {
+                            <div class="club-login-note">Bạn cần tham gia @dot.MaClbNavigation.TenClb trước khi tham gia bầu chọn.</div>
+                        }
+                        else if (!IsElectionOpen(dot))
+                        {
+                            <div class="club-login-note">Đợt bầu chọn hiện chưa mở hoặc đã kết thúc. Bạn vẫn có thể xem kết quả bên dưới.</div>
+                        }
+
+                        @if (canAct)
+                        {
+                            <div class="club-election-forms">
+                                <form asp-controller="Clb" asp-action="SelfNominate" method="post">
+                                    <input type="hidden" name="dotId" value="@dot.MaDot" />
+                                    <label>Tự ứng cử</label>
+                                    <input name="lyDo" maxlength="500" placeholder="Lý do và kế hoạch đóng góp" />
+                                    <button type="submit">Gửi ứng cử</button>
+                                </form>
+
+                                <form asp-controller="Clb" asp-action="Nominate" method="post">
+                                    <input type="hidden" name="dotId" value="@dot.MaDot" />
+                                    <label>Đề cử thành viên</label>
+                                    <select name="sinhVienId" required>
+                                        <option value="">Chọn thành viên</option>
+                                        @foreach (var member in members.Where(m => m.MaSinhVien != Model.CurrentSinhVienId))
+                                        {
+                                            <option value="@member.MaSinhVien">@member.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen</option>
+                                        }
+                                    </select>
+                                    <input name="lyDo" maxlength="500" placeholder="Lý do đề cử" />
+                                    <button type="submit">Gửi đề cử</button>
+                                </form>
+                            </div>
+                        }
+
+                        <div class="candidate-result-grid">
+                            @if (!candidates.Any())
+                            {
+                                <p class="empty-text">Chưa có ứng viên cho đợt bầu chọn này.</p>
+                            }
+                            @foreach (var candidate in candidates)
+                            {
+                                var voteCount = Model.CandidateVoteCounts.TryGetValue(candidate.MaUngVien, out var votes) ? votes : 0;
+                                var percent = totalVotes == 0 ? 0 : (int)Math.Round(voteCount * 100m / totalVotes);
+                                var selected = votedCandidate == candidate.MaUngVien;
+                                <article class="candidate-result-card">
+                                    <div class="candidate-title">
+                                        <span>@LogoText(candidate.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen)</span>
+                                        <div>
+                                            <h4>@candidate.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen</h4>
+                                            <small>Đề cử bởi @(candidate.NguoiDeCuNavigation?.MaTaiKhoanNavigation.HoTen ?? "Tự ứng cử")</small>
+                                        </div>
+                                    </div>
+                                    <p>@(candidate.LyDoDeCu ?? "Mong muốn đóng góp cho hoạt động CLB.")</p>
+                                    <div class="vote-result-bar"><span style="width:@percent%"></span></div>
+                                    <div class="candidate-footer">
+                                        <strong>@voteCount phiếu • @percent%</strong>
+                                        @if (canAct)
+                                        {
+                                            <form asp-controller="Clb" asp-action="Vote" method="post">
+                                                <input type="hidden" name="dotId" value="@dot.MaDot" />
+                                                <input type="hidden" name="ungVienId" value="@candidate.MaUngVien" />
+                                                <button type="submit">@(selected ? "Đã chọn" : votedCandidate == 0 ? "Bỏ phiếu" : "Đổi phiếu")</button>
+                                            </form>
+                                        }
+                                    </div>
+                                </article>
+                            }
+                        </div>
+                    </article>
+                }
             </div>
         </section>
     </section>
 
     <aside class="club-rightbar">
         <section class="club-widget" id="clb-cua-toi">
-            <div class="club-panel-head"><h2>CLB của tôi</h2><a href="#">Xem tất cả</a></div>
+            <div class="club-panel-head"><h2>CLB của tôi</h2><a href="#featured-clubs">Tham gia thêm</a></div>
             <div class="my-club-list">
-                <div><span class="club-mini ai-logo">AI</span><strong>AI Club</strong><small>Thành viên</small></div>
-                <div><span class="club-mini code-logo">&lt;/&gt;</span><strong>Code Warriors</strong><small>Thành viên</small></div>
-                <div><span class="club-mini shield-logo">⬟</span><strong>Cyber Security Club</strong><small>Thành viên</small></div>
+                @if (!isLoggedIn)
+                {
+                    <p class="empty-text">Đăng nhập để xem danh sách CLB bạn đang tham gia.</p>
+                }
+                else if (!Model.MyMemberships.Any())
+                {
+                    <p class="empty-text">Bạn chưa tham gia CLB nào.</p>
+                }
+                @foreach (var membership in Model.MyMemberships)
+                {
+                    <div>
+                        <span class="club-mini ai-logo">@LogoText(membership.MaClbNavigation.TenClb)</span>
+                        <strong>@membership.MaClbNavigation.TenClb</strong>
+                        <small>@(membership.VaiTroClb ?? "Thành viên")</small>
+                    </div>
+                }
             </div>
         </section>
 
         <section class="club-widget">
-            <div class="club-panel-head"><h2>Hoạt động sắp tới</h2><a href="#">Xem tất cả</a></div>
+            <div class="club-panel-head"><h2>Hoạt động sắp tới</h2><a href="#hoat-dong-clb">Xem tất cả</a></div>
             <div class="event-list">
-                <article><time>25<br />MAY</time><div><h3>Workshop: Build Chatbot với RAG</h3><p>AI Club</p><small>◷ 18:00 - 20:00</small></div><button>Tham gia</button></article>
-                <article><time>28<br />MAY</time><div><h3>Code Challenge: Algorithm Week</h3><p>Code Warriors</p><small>◷ 19:00 - 21:00</small></div><button>Tham gia</button></article>
-                <article><time>30<br />MAY</time><div><h3>Seminar: An toàn thông tin cơ bản</h3><p>Cyber Security Club</p><small>◷ 18:30 - 20:30</small></div><button>Tham gia</button></article>
-                <article><time>02<br />JUL</time><div><h3>Bầu Phó ban chủ nhiệm CLB nhiệm kỳ 2026</h3><p>Cộng đồng CLB</p><small>◷ 19:00 - 20:30</small></div><button>Bỏ phiếu</button></article>
+                @foreach (var activity in Model.Activities.Where(a => a.ThoiGian.HasValue && a.ThoiGian.Value >= now).Take(4))
+                {
+                    <article>
+                        <time>@activity.ThoiGian?.ToString("dd")<br />@activity.ThoiGian?.ToString("MM")</time>
+                        <div>
+                            <h3>@activity.TieuDe</h3>
+                            <p>@activity.MaClbNavigation.TenClb</p>
+                            <small>@(activity.DiaDiem ?? "Chưa cập nhật địa điểm")</small>
+                        </div>
+                        <a class="btn btn-light" href="#hoat-dong-clb">Xem</a>
+                    </article>
+                }
             </div>
         </section>
 
         <section class="club-widget" id="xep-hang-clb">
-            <div class="club-panel-head"><h2>CLB hoạt động tích cực</h2><a href="#">Xem tất cả</a></div>
+            <div class="club-panel-head"><h2>CLB hoạt động tích cực</h2><a href="#featured-clubs">Xem CLB</a></div>
             <div class="rank-list">
-                <div><span>🥇</span><strong>AI Club</strong><small>1.250 điểm</small></div>
-                <div><span>🥈</span><strong>Code Warriors</strong><small>1.180 điểm</small></div>
-                <div><span>🥉</span><strong>Cyber Security Club</strong><small>1.020 điểm</small></div>
+                @foreach (var club in Model.Clubs.OrderByDescending(c => Model.MemberCounts.TryGetValue(c.MaClb, out var rankSortCount) ? rankSortCount : 0).Take(5))
+                {
+                    var memberCount = Model.MemberCounts.TryGetValue(club.MaClb, out var rankCount) ? rankCount : 0;
+                    <div><span>@LogoText(club.TenClb)</span><strong>@club.TenClb</strong><small>@memberCount thành viên</small></div>
+                }
             </div>
         </section>
     </aside>

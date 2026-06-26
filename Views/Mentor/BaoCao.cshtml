@@ -1,0 +1,40 @@
+﻿@model StudyConnect.ViewModels.BaoCaoBuoiHocViewModel
+@{
+    ViewData["Title"] = "Báo cáo buổi học";
+    var session = ViewBag.Session as StudyConnect.Models.LichHoc;
+}
+
+<main class="study-flow-page">
+    <aside class="study-side-nav">
+        <a class="role-brand" asp-controller="Mentor" asp-action="Index">StudyConnect</a>
+        <p>Mentor</p>
+        <a asp-action="Index">Dashboard mentor</a>
+        <a asp-action="Index" asp-fragment="lich-hoc">Lịch học</a>
+        <a class="active" asp-action="Index" asp-fragment="bao-cao">Báo cáo</a>
+    </aside>
+
+    <section class="study-flow-main">
+        <div class="flow-breadcrumb">Mentor > Báo cáo buổi học</div>
+        <form asp-action="BaoCao" method="post" class="flow-card request-form-card narrow-form">
+            <input asp-for="MaLichHoc" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="alert error"></div>
+            <h1>Báo cáo buổi học</h1>
+            <p class="mentor-tip">
+                Sinh viên: @session?.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen -
+                @session?.NgayHoc.ToString("dd/MM/yyyy") @session?.GioBatDau.ToString("HH:mm")-@session?.GioKetThuc.ToString("HH:mm")
+            </p>
+            <label class="request-field"><span>Nội dung đã học</span><textarea asp-for="NoiDungDaHoc" rows="5"></textarea><small asp-validation-for="NoiDungDaHoc"></small></label>
+            <label class="request-field"><span>Bài tập / hướng học tiếp</span><textarea asp-for="BaiTap" rows="4"></textarea></label>
+            <label class="request-field"><span>Mức độ tiếp thu</span><select asp-for="MucDoTiepThu"><option>Tốt</option><option>Khá</option><option>Trung bình</option><option>Cần hỗ trợ thêm</option></select></label>
+            <label class="request-field"><span>Nhận xét</span><textarea asp-for="NhanXet" rows="4"></textarea></label>
+            <div class="flow-actions">
+                <a class="btn btn-light" asp-action="Index" asp-fragment="lich-hoc">Hủy</a>
+                <button class="btn btn-primary" type="submit">Lưu báo cáo</button>
+            </div>
+        </form>
+    </section>
+</main>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

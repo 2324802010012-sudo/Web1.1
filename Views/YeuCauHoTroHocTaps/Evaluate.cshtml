@@ -1,0 +1,36 @@
+﻿@model StudyConnect.ViewModels.DanhGiaMentorViewModel
+@{
+    ViewData["Title"] = "Đánh giá mentor";
+    var match = ViewBag.Match as StudyConnect.Models.GhepNoiHocTap;
+}
+
+<main class="study-flow-page">
+    <aside class="study-side-nav">
+        <a class="role-brand" asp-controller="SinhVien" asp-action="Index">StudyConnect</a>
+        <p>Quy trình học 1-1</p>
+        <a asp-controller="YeuCauHoTroHocTaps" asp-action="Index">Yêu cầu của tôi</a>
+        <a class="active" asp-controller="YeuCauHoTroHocTaps" asp-action="Evaluate" asp-route-id="@Model.MaGhepNoi">Đánh giá mentor</a>
+        <a asp-controller="Home" asp-action="Hoc11">Tìm mentor</a>
+        <a asp-controller="SinhVien" asp-action="Index">Dashboard sinh viên</a>
+    </aside>
+
+    <section class="study-flow-main">
+        <div class="flow-breadcrumb">Học 1-1 > Đánh giá mentor</div>
+        <form asp-action="Evaluate" method="post" class="flow-card request-form-card narrow-form">
+            <input asp-for="MaGhepNoi" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="alert error"></div>
+            <h1>Đánh giá @match?.MaHuongDanNavigation.MaTaiKhoanNavigation.HoTen</h1>
+            <p class="mentor-tip">Đánh giá của bạn giúp cập nhật điểm uy tín mentor và cải thiện gợi ý cho các sinh viên sau.</p>
+            <label class="request-field"><span>Số sao</span><input asp-for="SoSao" type="number" min="1" max="5" /><small asp-validation-for="SoSao"></small></label>
+            <label class="request-field"><span>Nhận xét</span><textarea asp-for="NhanXet" rows="5" placeholder="Mentor hỗ trợ ra sao, nội dung có rõ ràng không, bạn có muốn học tiếp không?"></textarea></label>
+            <div class="flow-actions">
+                <a class="btn btn-light" asp-action="Details" asp-route-id="@match?.MaYeuCau">Hủy</a>
+                <button class="btn btn-primary" type="submit">Gửi đánh giá</button>
+            </div>
+        </form>
+    </section>
+</main>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

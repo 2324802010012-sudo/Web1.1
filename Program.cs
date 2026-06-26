@@ -3,6 +3,10 @@ using Microsoft.AspNetCore.Mvc.Razor;
 using StudyConnect.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
@@ -23,6 +27,18 @@ builder.Services.AddSession(options =>
 });
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    try
+    {
+        await StudyConnectSeedData.EnsureSeededAsync(app.Services);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Không thể tạo dữ liệu mẫu StudyConnect: {ex.Message}");
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

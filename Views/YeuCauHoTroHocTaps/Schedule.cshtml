@@ -1,0 +1,160 @@
+﻿@model StudyConnect.ViewModels.ScheduleSessionViewModel
+@{
+    ViewData["Title"] = "Lên lịch học";
+    var match = ViewBag.Match as StudyConnect.Models.GhepNoiHocTap;
+    var sharedSlots = ViewBag.SharedSlots as List<string> ?? [];
+    var suggestedSlots = ViewBag.SuggestedSlots as List<StudyConnect.ViewModels.SharedScheduleSlotViewModel> ?? [];
+    var existingSessions = match?.LichHocs.OrderByDescending(l => l.NgayHoc).ThenByDescending(l => l.GioBatDau).ToList() ?? [];
+    var request = match?.MaYeuCauNavigation;
+    var mentorName = match?.MaHuongDanNavigation.MaTaiKhoanNavigation.HoTen ?? "mentor";
+    var fitText = match?.DiemPhuHop == null ? "--" : match.DiemPhuHop.Value.ToString("0");
+}
+
+<main class="study-flow-page">
+    <aside class="study-side-nav">
+        <a class="role-brand" asp-controller="SinhVien" asp-action="Index">StudyConnect</a>
+        <p>Quy trình học 1-1</p>
+        <a asp-controller="YeuCauHoTroHocTaps" asp-action="Index">Yêu cầu & lịch học</a>
+        <a class="active" asp-controller="YeuCauHoTroHocTaps" asp-action="Schedule" asp-route-id="@Model.MaGhepNoi">Lên lịch học</a>
+        <a asp-controller="SinhVien" asp-action="HoSo">Hồ sơ & lịch rảnh</a>
+        <a asp-controller="SinhVien" asp-action="Index">Dashboard sinh viên</a>
+    </aside>
+
+    <section class="study-flow-main">
+        <div class="flow-breadcrumb">Học 1-1 > Lên lịch học</div>
+
+        <header class="flow-title">
+            <div>
+                <h1>Lên lịch với @mentorName</h1>
+                <p>Chọn thời gian nằm trong lịch rảnh chung. Hệ thống sẽ lưu lịch học để mentor lập báo cáo sau buổi học.</p>
+            </div>
+            <a class="btn btn-light" asp-action="Details" asp-route-id="@match?.MaYeuCau">Quay lại yêu cầu</a>
+        </header>
+
+        <section class="flow-card schedule-context-card">
+            <div>
+                <p class="eyebrow">Yêu cầu học 1-1</p>
+                <h2>@request?.MaLinhVucNavigation.TenLinhVuc</h2>
+                <p>@request?.MucTieu</p>
+            </div>
+            <div class="schedule-meta strong">
+                <span>Trạng thái: @match?.TrangThai</span>
+                <span>Phù hợp @fitText%</span>
+                <span>@sharedSlots.Count khung rảnh chung</span>
+            </div>
+        </section>
+
+        <div class="request-layout schedule-layout-wide">
+            <form asp-action="Schedule" method="post" class="flow-card request-form-card narrow-form">
+                <input asp-for="MaGhepNoi" type="hidden" />
+                <div asp-validation-summary="ModelOnly" class="alert error"></div>
+
+                <div class="flow-section-title"><span>1</span><h2>Thời gian học</h2></div>
+                <div class="request-grid three">
+                    <label class="request-field"><span>Ngày học</span><input asp-for="NgayHoc" type="date" id="NgayHoc" /><small asp-validation-for="NgayHoc"></small></label>
+                    <label class="request-field"><span>Giờ bắt đầu</span><input asp-for="GioBatDau" type="time" id="GioBatDau" /><small asp-validation-for="GioBatDau"></small></label>
+                    <label class="request-field"><span>Giờ kết thúc</span><input asp-for="GioKetThuc" type="time" id="GioKetThuc" /><small asp-validation-for="GioKetThuc"></small></label>
+                </div>
+
+                <div class="flow-section-title"><span>2</span><h2>Hình thức và địa điểm</h2></div>
+                <div class="request-grid two">
+                    <label class="request-field">
+                        <span>Hình thức</span>
+                        <select asp-for="HinhThuc">
+                            <option>Online</option>
+                            <option>Offline</option>
+                            <option>Linh hoạt</option>
+                        </select>
+                    </label>
+                    <label class="request-field"><span>Địa điểm</span><input asp-for="DiaDiem" placeholder="VD: Google Meet, phòng B204" /></label>
+                </div>
+                <label class="request-field"><span>Link online nếu có</span><input asp-for="LinkOnline" placeholder="https://meet.google.com/..." /></label>
+
+                <div class="schedule-note-box">
+                    <strong>Lưu ý trước khi lưu lịch</strong>
+                    <p>Thời gian phải nằm trong lịch rảnh chung của sinh viên và mentor. AM là buổi sáng, PM là buổi chiều/tối; 07:00 PM tương đương 19:00.</p>
+                </div>
+
+                <div class="flow-actions">
+                    <a class="btn btn-light" asp-action="Details" asp-route-id="@match?.MaYeuCau">Hủy</a>
+                    <button class="btn btn-primary" type="submit">Lưu lịch học</button>
+                </div>
+            </form>
+
+            <aside class="request-summary-column schedule-side-column">
+                <section class="flow-card compact-summary">
+                    <h2>Gợi ý lịch rảnh chung</h2>
+                    @if (suggestedSlots.Count > 0)
+                    {
+                        <div class="smart-slot-list">
+                            @foreach (var slot in suggestedSlots)
+                            {
+                                var dateValue = slot.NgayHoc.ToString("yyyy-MM-dd");
+                                var startValue = slot.GioBatDau.ToString(@"hh\:mm");
+                                var endValue = slot.GioKetThuc.ToString(@"hh\:mm");
+                                <button type="button" data-date="@dateValue" data-start="@startValue" data-end="@endValue">
+                                    <strong>@slot.Label</strong>
+                                    <span>Chọn lịch này</span>
+                                </button>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="empty-note">Chưa có lịch rảnh chung. Hãy cập nhật lịch rảnh hoặc trao đổi lại với mentor.</p>
+                    }
+
+                    @if (sharedSlots.Count > 0)
+                    {
+                        <div class="student-chip-row shared-slot-list">
+                            @foreach (var slot in sharedSlots)
+                            {
+                                <span>@slot</span>
+                            }
+                        </div>
+                    }
+                </section>
+
+                <section class="flow-card compact-summary">
+                    <h2>Lịch đã đặt với mentor</h2>
+                    @if (existingSessions.Count == 0)
+                    {
+                        <p class="empty-note">Đây sẽ là buổi học đầu tiên của ghép nối này.</p>
+                    }
+                    else
+                    {
+                        <div class="mini-session-list">
+                            @foreach (var session in existingSessions.Take(5))
+                            {
+                                <article>
+                                    <time>@session.NgayHoc.ToString("dd/MM")</time>
+                                    <div>
+                                        <strong>@session.GioBatDau.ToString("HH:mm") - @session.GioKetThuc.ToString("HH:mm")</strong>
+                                        <small>@session.HinhThuc - @session.TrangThai</small>
+                                    </div>
+                                    @if (session.BaoCaoBuoiHoc != null)
+                                    {
+                                        <span>Đã báo cáo</span>
+                                    }
+                                </article>
+                            }
+                        </div>
+                    }
+                </section>
+            </aside>
+        </div>
+    </section>
+</main>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        document.querySelectorAll(".smart-slot-list button").forEach((button) => {
+            button.addEventListener("click", () => {
+                document.getElementById("NgayHoc").value = button.dataset.date;
+                document.getElementById("GioBatDau").value = button.dataset.start;
+                document.getElementById("GioKetThuc").value = button.dataset.end;
+            });
+        });
+    </script>
+}

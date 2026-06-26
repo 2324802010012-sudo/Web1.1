@@ -1,0 +1,146 @@
+﻿@model StudyConnect.ViewModels.MentorDetailViewModel
+@{
+    ViewData["Title"] = $"Mentor {Model.HoTen}";
+}
+
+<header class="site-header">
+    <a class="brand" asp-controller="Home" asp-action="Index" aria-label="StudyConnect trang chủ">
+        <span class="brand-icon"><span></span><span></span><span></span></span>
+        <span><strong>StudyConnect</strong><small>Học 1-1 - Kết nối - Phát triển</small></span>
+    </a>
+
+    <nav class="main-nav" aria-label="Điều hướng chính">
+        <a asp-controller="Home" asp-action="Index">Trang chủ</a>
+        <a class="active" asp-controller="Home" asp-action="Hoc11">Học 1-1</a>
+        <a asp-controller="Home" asp-action="CauLacBo">Cộng đồng CLB</a>
+    </nav>
+
+    <div class="header-actions">
+        @if (Context.Session.GetInt32("UserId").HasValue)
+        {
+            <a class="btn btn-light" asp-controller="TaiKhoans" asp-action="Profile">Hồ sơ</a>
+            <form asp-controller="TaiKhoans" asp-action="Logout" method="post" class="inline-form">
+                <button class="btn btn-primary" type="submit">Đăng xuất</button>
+            </form>
+        }
+        else
+        {
+            <a class="btn btn-light" asp-controller="TaiKhoans" asp-action="Login">Đăng nhập</a>
+            <a class="btn btn-primary" asp-controller="TaiKhoans" asp-action="Create">Đăng ký</a>
+        }
+    </div>
+</header>
+
+<main class="mentor-detail-page">
+    <section class="mentor-detail-hero">
+        <a class="back-link" asp-controller="Home" asp-action="Hoc11" asp-fragment="mentor-goi-y">Quay lại danh sách mentor</a>
+        <div class="mentor-detail-main-card">
+            <div class="mentor-detail-identity">
+                @if (!string.IsNullOrWhiteSpace(Model.AnhDaiDien))
+                {
+                    <img class="mentor-detail-avatar" src="@Model.AnhDaiDien" alt="@Model.HoTen" />
+                }
+                else
+                {
+                    <span class="mentor-detail-avatar fallback">@Model.HoTen.Substring(0, 1).ToUpper()</span>
+                }
+                <div>
+                    <p class="eyebrow">@Model.LoaiNguoiHuongDan</p>
+                    <h1>@Model.HoTen</h1>
+                    <p>@(string.IsNullOrWhiteSpace(Model.ChuyenNganh) ? "Mentor học tập 1-1" : Model.ChuyenNganh)</p>
+                    <div class="mentor-detail-tags">
+                        @foreach (var skill in Model.ChuyenMon)
+                        {
+                            <span>@skill</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="mentor-detail-actions">
+                <a class="btn btn-primary btn-large" asp-controller="YeuCauHoTroHocTaps" asp-action="Create" asp-route-mentorId="@Model.MaHuongDan">Ghép nối / Tạo yêu cầu hỗ trợ</a>
+                <a class="btn btn-light btn-large" asp-controller="Home" asp-action="Hoc11" asp-fragment="mentor-goi-y">Xem mentor khác</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="mentor-detail-grid">
+        <article class="mentor-detail-panel">
+            <h2>Tổng quan mentor</h2>
+            <div class="mentor-stat-grid">
+                <div><strong>@Model.DiemDanhGia.ToString("0.0")/5</strong><span>Đánh giá</span></div>
+                <div><strong>@Model.SoLuotDanhGia</strong><span>Lượt đánh giá</span></div>
+                <div><strong>@Model.DiemUyTin.ToString("0.0")</strong><span>Điểm uy tín</span></div>
+                <div><strong>@Model.SoBuoiHoTro</strong><span>Buổi hỗ trợ</span></div>
+            </div>
+            <p>@Model.MoTaKinhNghiem</p>
+            @if (!string.IsNullOrWhiteSpace(Model.KyNang))
+            {
+                <h3>Kỹ năng</h3>
+                <p>@Model.KyNang</p>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.MucTieuChiaSe))
+            {
+                <h3>Mục tiêu chia sẻ</h3>
+                <p>@Model.MucTieuChiaSe</p>
+            }
+        </article>
+
+        <aside class="mentor-detail-panel">
+            <h2>Lịch rảnh</h2>
+            @if (Model.LichRanh.Count == 0)
+            {
+                <p class="empty-note">Mentor chưa cập nhật lịch rảnh.</p>
+            }
+            else
+            {
+                <div class="mentor-slot-list">
+                    @foreach (var slot in Model.LichRanh)
+                    {
+                        <span>@slot</span>
+                    }
+                </div>
+            }
+
+            <h2>CLB đang tham gia</h2>
+            @if (Model.CauLacBo.Count == 0)
+            {
+                <p class="empty-note">Chưa có dữ liệu CLB.</p>
+            }
+            else
+            {
+                <div class="mentor-club-list">
+                    @foreach (var club in Model.CauLacBo)
+                    {
+                        <span>@club</span>
+                    }
+                </div>
+            }
+        </aside>
+    </section>
+
+    <section class="mentor-detail-grid">
+        <article class="mentor-detail-panel">
+            <h2>Lịch sử hỗ trợ gần đây</h2>
+            @if (Model.LichSuHoTro.Count == 0)
+            {
+                <p class="empty-note">Chưa có buổi học hoàn thành được ghi nhận.</p>
+            }
+            else
+            {
+                <div class="mentor-history-list">
+                    @foreach (var item in Model.LichSuHoTro)
+                    {
+                        <div><span></span><p>@item</p></div>
+                    }
+                </div>
+            }
+        </article>
+
+        <article class="mentor-detail-panel mentor-connect-panel">
+            <h2>Sẵn sàng ghép nối?</h2>
+            <p>Để gửi yêu cầu cho mentor này, bạn cần đăng nhập bằng tài khoản sinh viên và hoàn tất hồ sơ gồm kỹ năng, chuyên ngành, mục tiêu học và lịch rảnh.</p>
+            <a class="btn btn-primary btn-large" asp-controller="YeuCauHoTroHocTaps" asp-action="Create" asp-route-mentorId="@Model.MaHuongDan">Tạo yêu cầu với mentor này</a>
+        </article>
+    </section>
+</main>

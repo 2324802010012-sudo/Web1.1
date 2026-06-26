@@ -1,0 +1,79 @@
+﻿@model StudyConnect.Models.DangKyHuongDan
+@{
+    ViewData["Title"] = "Chi tiết đăng ký mentor";
+    var account = Model.MaSinhVienNavigation.MaTaiKhoanNavigation;
+    var slots = account.LichRanhs.OrderBy(l => l.Thu).ThenBy(l => l.GioBatDau).ToList();
+    string DayName(int day) => day == 8 ? "Chủ nhật" : $"Thứ {day}";
+}
+
+<main class="study-flow-page">
+    <aside class="study-side-nav">
+        <a class="role-brand" asp-controller="CoVan" asp-action="Index">StudyConnect</a>
+        <p>Cố vấn</p>
+        <a asp-controller="CoVan" asp-action="Index">Dashboard cố vấn</a>
+        <a class="active" asp-controller="CoVan" asp-action="DangKyMentorDetails" asp-route-id="@Model.MaDangKy">Hồ sơ mentor</a>
+    </aside>
+
+    <section class="study-flow-main">
+        <div class="flow-breadcrumb">Cố vấn > Chi tiết đăng ký mentor</div>
+
+        @if (TempData["SuccessMessage"] is string success)
+        {
+            <div class="flow-alert success">@success</div>
+        }
+
+        <header class="flow-title">
+            <div>
+                <h1>@account.HoTen</h1>
+                <p>Hồ sơ đăng ký làm mentor cần cố vấn xem chuyên môn, minh chứng và lịch rảnh.</p>
+            </div>
+            <a class="btn btn-light" asp-action="Index" asp-fragment="duyet-mentor">Quay lại</a>
+        </header>
+
+        <div class="request-layout">
+            <section class="flow-card request-detail-card">
+                <div class="role-panel-head">
+                    <div>
+                        <p class="eyebrow">@Model.MaLinhVucNavigation.TenLinhVuc</p>
+                        <h2>Thông tin đăng ký</h2>
+                    </div>
+                    <span class="status-pill">@Model.TrangThaiDuyet</span>
+                </div>
+                <dl class="detail-list">
+                    <dt>Sinh viên</dt><dd>@account.HoTen - @account.Email</dd>
+                    <dt>Điểm môn</dt><dd>@(Model.DiemMon?.ToString("0.0") ?? "Chưa nhập")</dd>
+                    <dt>Minh chứng</dt><dd>@(string.IsNullOrWhiteSpace(Model.MinhChung) ? "Chưa nhập" : Model.MinhChung)</dd>
+                    <dt>Ngày gửi</dt><dd>@Model.NgayDangKy?.ToString("dd/MM/yyyy HH:mm")</dd>
+                </dl>
+                <pre class="problem-box">@Model.LyDo</pre>
+
+                <h2>Lịch rảnh cá nhân</h2>
+                <div class="shared-mini-slots">
+                    @if (slots.Count == 0)
+                    {
+                        <span>Chưa có lịch rảnh</span>
+                    }
+                    else
+                    {
+                        @foreach (var slot in slots)
+                        {
+                            <span>@DayName(slot.Thu) @slot.GioBatDau.ToString("HH:mm")-@slot.GioKetThuc.ToString("HH:mm")</span>
+                        }
+                    }
+                </div>
+
+                <div class="flow-actions">
+                    @if (Model.TrangThaiDuyet == "Chờ duyệt")
+                    {
+                        <form asp-action="TuChoiMentor" asp-route-id="@Model.MaDangKy" method="post"><button class="btn btn-light" type="submit">Từ chối</button></form>
+                        <form asp-action="DuyetMentor" asp-route-id="@Model.MaDangKy" method="post"><button class="btn btn-primary" type="submit">Duyệt làm mentor</button></form>
+                    }
+                    else
+                    {
+                        <a class="btn btn-primary" asp-action="Index" asp-fragment="duyet-mentor">Hoàn tất</a>
+                    }
+                </div>
+            </section>
+        </div>
+    </section>
+</main>
