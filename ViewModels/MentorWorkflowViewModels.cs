@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace StudyConnect.ViewModels;
@@ -14,6 +15,10 @@ public class MentorApplicationViewModel
     [StringLength(255)]
     public string? MinhChung { get; set; }
 
+    public IFormFile? BangChungFile { get; set; }
+
+    public string? BangChungDaTai { get; set; }
+
     [Required(ErrorMessage = "Vui lòng mô tả kinh nghiệm hoặc lý do muốn làm mentor.")]
     public string LyDo { get; set; } = string.Empty;
 
@@ -27,6 +32,12 @@ public class MentorApplicationViewModel
 public class MentorAvailabilityViewModel
 {
     public List<string> LichRanhDaChon { get; set; } = [];
+
+    public int? ThuTuyChinh { get; set; }
+
+    public TimeSpan? GioBatDauTuyChinh { get; set; }
+
+    public TimeSpan? GioKetThucTuyChinh { get; set; }
 }
 
 public class DashboardNotificationViewModel

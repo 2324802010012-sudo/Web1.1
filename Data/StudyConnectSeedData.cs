@@ -57,7 +57,11 @@ public static class StudyConnectSeedData
             ("AI Club", "Cộng đồng nghiên cứu và ứng dụng AI trong học tập."),
             ("Code Warriors", "CLB lập trình, thuật toán và dự án thực tế."),
             ("Cyber Security Club", "CLB an toàn thông tin và bảo mật ứng dụng."),
-            ("Data Science Club", "CLB phân tích dữ liệu, trực quan hóa và machine learning.")
+            ("Data Science Club", "CLB phân tích dữ liệu, trực quan hóa và machine learning."),
+            ("Robotics & IoT Club", "CLB nghiên cứu robot, cảm biến, IoT và hệ thống nhúng."),
+            ("Mobile App Club", "CLB phát triển ứng dụng di động Android, iOS và Flutter."),
+            ("UI/UX Design Club", "CLB thiết kế giao diện, trải nghiệm người dùng và prototype sản phẩm."),
+            ("Cloud Computing Club", "CLB điện toán đám mây, DevOps, triển khai web và hạ tầng ứng dụng.")
         };
 
         foreach (var club in clubs)

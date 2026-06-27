@@ -41,6 +41,12 @@
             <article><small>Đánh giá</small><strong>@ViewBag.DanhGia</strong></article>
         </section>
 
+        <section class="role-feature-grid compact">
+            <article><span>HD</span><h3>@ViewBag.MentorHoatDong mentor hoạt động</h3><p>Mentor có thể nhận ghép nối và xuất hiện trong gợi ý học 1-1.</p></article>
+            <article><span>CT</span><h3>@ViewBag.MentorCanChuY mentor cần chú ý</h3><p>Mentor tạm dừng, thiếu lịch rảnh hoặc có đánh giá thấp cần cố vấn rà soát.</p></article>
+            <article><span>DV</span><h3>Duyệt chuyên môn</h3><p>Kiểm tra điểm môn, minh chứng, lịch rảnh và năng lực hỗ trợ trước khi duyệt.</p></article>
+        </section>
+
         <section class="role-panel" id="thong-bao">
             <div class="role-panel-head"><h2>Thông báo cần xử lý</h2><strong>@notifications.Count</strong></div>
             <div class="dashboard-notification-list">
@@ -100,7 +106,8 @@
             <div class="role-panel-head">
                 <div>
                     <p class="eyebrow">Quản lý bởi cố vấn</p>
-                    <h2>Danh sách mentor đang hoạt động</h2>
+                    <h2>Danh sách toàn bộ mentor</h2>
+                    <span class="panel-note">Điểm uy tín tự động: 60% đánh giá thật, 20% buổi hoàn thành, 10% báo cáo, 10% số lượt đánh giá.</span>
                 </div>
                 <strong>@mentors.Count mentor</strong>
             </div>
@@ -111,17 +118,45 @@
             }
             else
             {
-                <div class="managed-mentor-table">
-                    <div class="managed-mentor-head"><span>Mentor</span><span>Chuyên môn</span><span>Đánh giá</span><span>Uy tín</span><span>Trạng thái</span></div>
+                <div class="managed-mentor-table advisor-mentor-table">
+                    <div class="managed-mentor-head"><span>Mentor</span><span>Chuyên môn & tải</span><span>Chất lượng</span><span>Quản lý</span></div>
                     @foreach (var mentor in mentors)
                     {
-                        <div>
-                            <strong>@mentor.HoTen<small>@mentor.Email</small></strong>
-                            <span>@mentor.ChuyenMon</span>
-                            <b>@mentor.DiemDanhGia.ToString("0.0") (@mentor.SoLuotDanhGia)</b>
-                            <b>@mentor.DiemUyTin.ToString("0.00")</b>
-                            <em>@mentor.TrangThai</em>
-                        </div>
+                        <form asp-action="UpdateMentor" method="post">
+                            <input type="hidden" name="id" value="@mentor.MaHuongDan" />
+                            <strong>
+                                @mentor.HoTen
+                                <small>@mentor.Email</small>
+                                <small>@mentor.LoaiNguoiHuongDan</small>
+                            </strong>
+                            <span>
+                                @(string.IsNullOrWhiteSpace(mentor.ChuyenMon) ? "Chưa cập nhật chuyên môn" : mentor.ChuyenMon)
+                                <small>@mentor.SoGhepNoi ghép nối • @mentor.SoBuoiHoc buổi học • @mentor.SoKhungLichRanh khung lịch rảnh</small>
+                            </span>
+                            <span class="advisor-quality-box">
+                                <b>Hạng #@mentor.ThuHang • Uy tín @mentor.DiemUyTin.ToString("0.00")</b>
+                                <b>@mentor.DiemDanhGia.ToString("0.0") sao (@mentor.SoLuotDanhGia đánh giá)</b>
+                                <small>@mentor.SoBuoiHoanThanh buổi hoàn thành • @mentor.SoBaoCao báo cáo</small>
+                                <small class="reputation-formula">@mentor.CongThucUyTin</small>
+                                @if (mentor.BaoCaoChoDanhGia > 0)
+                                {
+                                    <small>@mentor.BaoCaoChoDanhGia báo cáo chờ sinh viên đánh giá</small>
+                                }
+                            </span>
+                            <div class="advisor-mentor-actions">
+                                <select name="trangThai">
+                                    <option selected="@(mentor.TrangThai == "Hoạt động")">Hoạt động</option>
+                                    <option selected="@(mentor.TrangThai == "Tạm dừng")">Tạm dừng</option>
+                                    <option selected="@(mentor.TrangThai == "Cần theo dõi")">Cần theo dõi</option>
+                                </select>
+                                <input name="loaiNguoiHuongDan" maxlength="50" value="@mentor.LoaiNguoiHuongDan" />
+                                <small class="readonly-score">Uy tín không sửa tay, được tính lại từ dữ liệu thật.</small>
+                                <div>
+                                    <a class="btn btn-light" asp-controller="Home" asp-action="MentorDetail" asp-route-id="@mentor.MaHuongDan">Hồ sơ</a>
+                                    <button class="btn btn-primary" type="submit">Lưu</button>
+                                </div>
+                            </div>
+                        </form>
                     }
                 </div>
             }

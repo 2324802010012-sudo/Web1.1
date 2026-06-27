@@ -1,6 +1,7 @@
 ﻿@model StudyConnect.ViewModels.MentorAvailabilityViewModel
 @{
     ViewData["Title"] = "Cập nhật lịch rảnh mentor";
+    var currentSlots = ViewBag.CurrentSlots as List<StudyConnect.Models.LichRanh> ?? [];
     var slotGroups = new Dictionary<string, string[]>
     {
         ["Buổi sáng"] = new[] { "08:00|10:00", "10:00|12:00" },
@@ -30,6 +31,28 @@
 
         <form asp-action="Availability" method="post" class="flow-card request-form-card">
             <div asp-validation-summary="ModelOnly" class="alert error"></div>
+
+            <section class="mentor-current-availability">
+                <div>
+                    <p class="eyebrow">Đang lưu trong hệ thống</p>
+                    <h2>Lịch rảnh hiện tại</h2>
+                </div>
+                @if (currentSlots.Count == 0)
+                {
+                    <p class="empty-note">Bạn chưa có lịch rảnh. Hãy chọn các khung bên dưới rồi lưu.</p>
+                }
+                else
+                {
+                    <div class="student-chip-row">
+                        @foreach (var slot in currentSlots)
+                        {
+                            <span>@DayName(slot.Thu) @slot.GioBatDau.ToString("HH:mm")-@slot.GioKetThuc.ToString("HH:mm")</span>
+                        }
+                    </div>
+                }
+            </section>
+
+            <div class="flow-section-title"><span>1</span><h2>Chọn nhanh theo khung phổ biến</h2></div>
             <div class="mentor-availability-picker">
                 @foreach (var day in new[] { 2, 3, 4, 5, 6, 7, 8 })
                 {
@@ -54,6 +77,34 @@
                 }
             </div>
             <small asp-validation-for="LichRanhDaChon" class="field-validation-error"></small>
+
+            <section class="mentor-custom-slot">
+                <div class="flow-section-title"><span>2</span><h2>Thêm khung giờ tùy chỉnh</h2></div>
+                <p>Nếu lịch của bạn không nằm trong các ô trên, nhập một khung giờ riêng. Khung này sẽ được lưu chung vào bảng lịch rảnh.</p>
+                <div class="request-grid three">
+                    <label class="request-field">
+                        <span>Thứ</span>
+                        <select asp-for="ThuTuyChinh">
+                            <option value="">Không thêm</option>
+                            <option value="2">Thứ 2</option>
+                            <option value="3">Thứ 3</option>
+                            <option value="4">Thứ 4</option>
+                            <option value="5">Thứ 5</option>
+                            <option value="6">Thứ 6</option>
+                            <option value="7">Thứ 7</option>
+                            <option value="8">Chủ nhật</option>
+                        </select>
+                    </label>
+                    <label class="request-field"><span>Giờ bắt đầu</span><input asp-for="GioBatDauTuyChinh" type="time" /></label>
+                    <label class="request-field"><span>Giờ kết thúc</span><input asp-for="GioKetThucTuyChinh" type="time" /></label>
+                </div>
+            </section>
+
+            <div class="schedule-note-box">
+                <strong>Lịch này dùng cho ghép nối thật</strong>
+                <p>Sau khi lưu, hệ thống dùng các khung giờ này để tính điểm phù hợp mentor, tạo gợi ý lịch rảnh chung và chặn sinh viên đặt lịch ngoài thời gian hai bên cùng rảnh.</p>
+            </div>
+
             <div class="flow-actions">
                 <a class="btn btn-light" asp-action="Index" asp-fragment="lich-ranh">Hủy</a>
                 <button class="btn btn-primary" type="submit">Lưu lịch rảnh</button>

@@ -48,25 +48,122 @@ public class CoVanController : RoleProtectedController
 
         var mentors = await _context.NguoiHuongDans
             .Include(m => m.MaTaiKhoanNavigation)
+                .ThenInclude(t => t.LichRanhs)
             .Include(m => m.ChuyenMonNguoiHuongDans)
                 .ThenInclude(c => c.MaLinhVucNavigation)
-            .OrderByDescending(m => m.DiemUyTin)
-            .ThenByDescending(m => m.DiemDanhGia)
-            .Take(10)
+            .Include(m => m.GhepNoiHocTaps)
+                .ThenInclude(g => g.LichHocs)
+                    .ThenInclude(l => l.BaoCaoBuoiHoc)
+            .Include(m => m.GhepNoiHocTaps)
+                .ThenInclude(g => g.DanhGiaHuongDans)
             .ToListAsync();
 
-        ViewBag.ManagedMentors = mentors.Select(m => new ManagedMentorViewModel
+        var mentorMetrics = mentors.ToDictionary(m => m.MaHuongDan, CalculateMentorQuality);
+        var hasScoreChanges = false;
+        foreach (var mentor in mentors)
         {
-            HoTen = m.MaTaiKhoanNavigation.HoTen,
-            Email = m.MaTaiKhoanNavigation.Email,
-            ChuyenMon = string.Join(", ", m.ChuyenMonNguoiHuongDans.Select(c => c.MaLinhVucNavigation.TenLinhVuc)),
-            DiemDanhGia = m.DiemDanhGia ?? 0,
-            DiemUyTin = m.DiemUyTin ?? 0,
-            SoLuotDanhGia = m.SoLuotDanhGia ?? 0,
-            TrangThai = m.TrangThai ?? "-"
+            var metrics = mentorMetrics[mentor.MaHuongDan];
+            if (mentor.SoLuotDanhGia != metrics.ReviewCount
+                || mentor.DiemDanhGia != metrics.AverageRating
+                || mentor.DiemUyTin != metrics.Reputation)
+            {
+                mentor.SoLuotDanhGia = metrics.ReviewCount;
+                mentor.DiemDanhGia = metrics.AverageRating;
+                mentor.DiemUyTin = metrics.Reputation;
+                hasScoreChanges = true;
+            }
+        }
+
+        if (hasScoreChanges)
+        {
+            await _context.SaveChangesAsync();
+        }
+
+        mentors = mentors
+            .OrderByDescending(m => mentorMetrics[m.MaHuongDan].Reputation)
+            .ThenByDescending(m => mentorMetrics[m.MaHuongDan].AverageRating)
+            .ThenByDescending(m => mentorMetrics[m.MaHuongDan].ReviewCount)
+            .ThenBy(m => m.MaTaiKhoanNavigation.HoTen)
+            .ToList();
+
+        ViewBag.MentorHoatDong = mentors.Count(m => m.TrangThai == null || m.TrangThai == "Hoạt động");
+        ViewBag.MentorCanChuY = mentors.Count(m =>
+            m.TrangThai != "Hoạt động" ||
+            !m.MaTaiKhoanNavigation.LichRanhs.Any() ||
+            (m.SoLuotDanhGia.GetValueOrDefault() >= 3 && m.DiemDanhGia.GetValueOrDefault() < 4));
+
+        ViewBag.ManagedMentors = mentors.Select((m, index) =>
+        {
+            var metrics = mentorMetrics[m.MaHuongDan];
+            return new ManagedMentorViewModel
+            {
+                MaHuongDan = m.MaHuongDan,
+                HoTen = m.MaTaiKhoanNavigation.HoTen,
+                Email = m.MaTaiKhoanNavigation.Email,
+                LoaiNguoiHuongDan = m.LoaiNguoiHuongDan,
+                ChuyenMon = string.Join(", ", m.ChuyenMonNguoiHuongDans.Select(c => c.MaLinhVucNavigation.TenLinhVuc)),
+                DiemDanhGia = metrics.AverageRating,
+                DiemUyTin = metrics.Reputation,
+                SoLuotDanhGia = metrics.ReviewCount,
+                ThuHang = index + 1,
+                SoBuoiHoanThanh = metrics.CompletedSessions,
+                SoBaoCao = metrics.ReportCount,
+                CongThucUyTin = metrics.FormulaText,
+                TrangThai = m.TrangThai ?? "Hoạt động",
+                SoGhepNoi = m.GhepNoiHocTaps.Count,
+                SoBuoiHoc = m.GhepNoiHocTaps.Sum(g => g.LichHocs.Count),
+                BaoCaoChoDanhGia = m.GhepNoiHocTaps.Count(g => g.LichHocs.Any(l => l.BaoCaoBuoiHoc != null) && !g.DanhGiaHuongDans.Any()),
+                SoKhungLichRanh = m.MaTaiKhoanNavigation.LichRanhs.Count
+            };
         }).ToList();
 
         return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateMentor(int id, string? trangThai, string? loaiNguoiHuongDan)
+    {
+        var guard = RequireRoles(AccountRoles.CoVan);
+        if (guard != null) return guard;
+
+        var mentor = await _context.NguoiHuongDans
+            .Include(m => m.MaTaiKhoanNavigation)
+            .FirstOrDefaultAsync(m => m.MaHuongDan == id);
+
+        if (mentor == null) return NotFound();
+
+        var allowedStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Hoạt động",
+            "Tạm dừng",
+            "Cần theo dõi"
+        };
+
+        mentor.TrangThai = string.IsNullOrWhiteSpace(trangThai) || !allowedStatuses.Contains(trangThai.Trim())
+            ? "Hoạt động"
+            : trangThai.Trim();
+
+        if (!string.IsNullOrWhiteSpace(loaiNguoiHuongDan))
+        {
+            mentor.LoaiNguoiHuongDan = loaiNguoiHuongDan.Trim().Length > 50
+                ? loaiNguoiHuongDan.Trim()[..50]
+                : loaiNguoiHuongDan.Trim();
+        }
+
+        _context.ThongBaos.Add(new ThongBao
+        {
+            MaTaiKhoan = mentor.MaTaiKhoan,
+            TieuDe = "Cố vấn cập nhật hồ sơ mentor",
+            NoiDung = $"Trạng thái mentor của bạn hiện là {mentor.TrangThai}. Điểm uy tín được hệ thống tự tính từ đánh giá, buổi học và báo cáo.",
+            LoaiThongBao = "QuanLyMentor",
+            DaDoc = false,
+            NgayTao = DateTime.Now
+        });
+
+        await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = $"Đã cập nhật mentor {mentor.MaTaiKhoanNavigation.HoTen}.";
+        return RedirectToAction(nameof(Index), null, null, "mentor-quan-ly");
     }
 
     public async Task<IActionResult> DangKyMentorDetails(int id)
@@ -143,6 +240,15 @@ public class CoVanController : RoleProtectedController
         account.VaiTro = AccountRoles.Mentor;
         application.TrangThaiCoVan = "Đã duyệt";
         application.TrangThaiDuyet = "Đã duyệt";
+        _context.ThongBaos.Add(new ThongBao
+        {
+            MaTaiKhoan = account.MaTaiKhoan,
+            TieuDe = "Hồ sơ mentor đã được duyệt",
+            NoiDung = "Bạn đã trở thành mentor của StudyConnect. Hãy đăng nhập lại để vào dashboard Mentor.",
+            LoaiThongBao = "DangKyMentor",
+            DaDoc = false,
+            NgayTao = DateTime.Now
+        });
 
         await _context.SaveChangesAsync();
         TempData["SuccessMessage"] = $"Đã duyệt {account.HoTen} làm mentor. Tài khoản này có thể đăng nhập vào dashboard mentor.";
@@ -164,6 +270,15 @@ public class CoVanController : RoleProtectedController
 
         application.TrangThaiCoVan = "Từ chối";
         application.TrangThaiDuyet = "Từ chối";
+        _context.ThongBaos.Add(new ThongBao
+        {
+            MaTaiKhoan = application.MaSinhVienNavigation.MaTaiKhoanNavigation.MaTaiKhoan,
+            TieuDe = "Hồ sơ mentor bị từ chối",
+            NoiDung = "Cố vấn chưa duyệt hồ sơ mentor của bạn. Bạn có thể cập nhật minh chứng và gửi lại.",
+            LoaiThongBao = "DangKyMentor",
+            DaDoc = false,
+            NgayTao = DateTime.Now
+        });
         await _context.SaveChangesAsync();
 
         TempData["SuccessMessage"] = $"Đã từ chối đơn đăng ký mentor của {application.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen}.";
@@ -184,4 +299,44 @@ public class CoVanController : RoleProtectedController
         if (!string.IsNullOrWhiteSpace(application.LyDo)) parts.Add(application.LyDo.Trim());
         return string.Join(" ", parts);
     }
+
+    private static MentorQualityMetrics CalculateMentorQuality(NguoiHuongDan mentor)
+    {
+        var ratings = mentor.GhepNoiHocTaps
+            .SelectMany(g => g.DanhGiaHuongDans)
+            .Where(d => d.SoSao.HasValue)
+            .Select(d => d.SoSao!.Value)
+            .ToList();
+
+        var reviewCount = ratings.Count;
+        var averageRating = reviewCount == 0 ? 0m : Math.Round((decimal)ratings.Average(), 2);
+        var completedSessions = mentor.GhepNoiHocTaps
+            .SelectMany(g => g.LichHocs)
+            .Count(IsCompletedSession);
+        var reportCount = mentor.GhepNoiHocTaps
+            .SelectMany(g => g.LichHocs)
+            .Count(l => l.BaoCaoBuoiHoc != null);
+
+        var ratingScore = reviewCount == 0 ? 0m : averageRating / 5m * 6m;
+        var sessionScore = Math.Min(completedSessions, 30) / 30m * 2m;
+        var reportScore = completedSessions == 0 ? 0m : Math.Min(reportCount, completedSessions) / (decimal)completedSessions;
+        var reviewVolumeScore = Math.Min(reviewCount, 20) / 20m;
+        var reputation = Math.Round(Math.Clamp(ratingScore + sessionScore + reportScore + reviewVolumeScore, 0m, 10m), 2);
+
+        var formulaText = $"60% đánh giá ({averageRating:0.0}/5), 20% buổi hoàn thành ({completedSessions}/30), 10% báo cáo ({reportCount}/{Math.Max(completedSessions, 1)}), 10% số lượt đánh giá ({reviewCount}/20).";
+        return new MentorQualityMetrics(reputation, averageRating, reviewCount, completedSessions, reportCount, formulaText);
+    }
+
+    private static bool IsCompletedSession(LichHoc schedule)
+    {
+        return schedule.TrangThai == "Đã hoàn thành" || schedule.BaoCaoBuoiHoc != null;
+    }
+
+    private sealed record MentorQualityMetrics(
+        decimal Reputation,
+        decimal AverageRating,
+        int ReviewCount,
+        int CompletedSessions,
+        int ReportCount,
+        string FormulaText);
 }

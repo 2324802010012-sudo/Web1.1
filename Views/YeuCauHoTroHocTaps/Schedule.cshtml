@@ -48,6 +48,7 @@
             <form asp-action="Schedule" method="post" class="flow-card request-form-card narrow-form">
                 <input asp-for="MaGhepNoi" type="hidden" />
                 <div asp-validation-summary="ModelOnly" class="alert error"></div>
+                <small asp-validation-for="SelectedSlots" class="field-validation-error"></small>
 
                 <div class="flow-section-title"><span>1</span><h2>Thời gian học</h2></div>
                 <div class="request-grid three">
@@ -72,7 +73,8 @@
 
                 <div class="schedule-note-box">
                     <strong>Lưu ý trước khi lưu lịch</strong>
-                    <p>Thời gian phải nằm trong lịch rảnh chung của sinh viên và mentor. AM là buổi sáng, PM là buổi chiều/tối; 07:00 PM tương đương 19:00.</p>
+                    <p>Có thể chọn nhiều khung ở cột gợi ý. Nếu không chọn khung gợi ý nào, hệ thống sẽ lưu theo ngày và giờ bạn nhập thủ công ở trên.</p>
+                    <p id="selectedSlotCount">Chưa chọn khung gợi ý nào.</p>
                 </div>
 
                 <div class="flow-actions">
@@ -83,7 +85,13 @@
 
             <aside class="request-summary-column schedule-side-column">
                 <section class="flow-card compact-summary">
-                    <h2>Gợi ý lịch rảnh chung</h2>
+                    <div class="schedule-suggest-head">
+                        <h2>Gợi ý lịch rảnh chung</h2>
+                        @if (suggestedSlots.Count > 0)
+                        {
+                            <button type="button" id="toggleAllSlots">Chọn tất cả</button>
+                        }
+                    </div>
                     @if (suggestedSlots.Count > 0)
                     {
                         <div class="smart-slot-list">
@@ -92,9 +100,17 @@
                                 var dateValue = slot.NgayHoc.ToString("yyyy-MM-dd");
                                 var startValue = slot.GioBatDau.ToString(@"hh\:mm");
                                 var endValue = slot.GioKetThuc.ToString(@"hh\:mm");
-                                <button type="button" data-date="@dateValue" data-start="@startValue" data-end="@endValue">
+                                var slotValue = $"{dateValue}|{startValue}|{endValue}";
+                                <label class="smart-slot-choice">
+                                    <input type="checkbox" name="SelectedSlots" value="@slotValue" data-date="@dateValue" data-start="@startValue" data-end="@endValue" checked="@(Model.SelectedSlots.Contains(slotValue))" />
+                                    <span>
+                                        <strong>@slot.Label</strong>
+                                        <em>Chọn buổi này</em>
+                                    </span>
+                                </label>
+                                <button class="smart-slot-fill" type="button" data-date="@dateValue" data-start="@startValue" data-end="@endValue">
                                     <strong>@slot.Label</strong>
-                                    <span>Chọn lịch này</span>
+                                    <span>Điền vào form</span>
                                 </button>
                             }
                         </div>
@@ -149,12 +165,41 @@
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script>
-        document.querySelectorAll(".smart-slot-list button").forEach((button) => {
+        const countLabel = document.getElementById("selectedSlotCount");
+        const toggleAllButton = document.getElementById("toggleAllSlots");
+        const slotChecks = Array.from(document.querySelectorAll(".smart-slot-choice input"));
+
+        const updateSelectedCount = () => {
+            if (!countLabel) return;
+            const count = slotChecks.filter((input) => input.checked).length;
+            countLabel.textContent = count === 0
+                ? "Chưa chọn khung gợi ý nào. Hệ thống sẽ dùng lịch nhập thủ công."
+                : `Đã chọn ${count} buổi học từ lịch rảnh chung.`;
+            if (toggleAllButton) {
+                toggleAllButton.textContent = count === slotChecks.length ? "Bỏ chọn tất cả" : "Chọn tất cả";
+            }
+        };
+
+        slotChecks.forEach((input) => input.addEventListener("change", updateSelectedCount));
+
+        if (toggleAllButton) {
+            toggleAllButton.addEventListener("click", () => {
+                const shouldCheck = slotChecks.some((input) => !input.checked);
+                slotChecks.forEach((input) => {
+                    input.checked = shouldCheck;
+                });
+                updateSelectedCount();
+            });
+        }
+
+        document.querySelectorAll(".smart-slot-fill").forEach((button) => {
             button.addEventListener("click", () => {
                 document.getElementById("NgayHoc").value = button.dataset.date;
                 document.getElementById("GioBatDau").value = button.dataset.start;
                 document.getElementById("GioKetThuc").value = button.dataset.end;
             });
         });
+
+        updateSelectedCount();
     </script>
 }

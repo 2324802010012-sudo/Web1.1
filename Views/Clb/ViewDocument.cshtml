@@ -1,0 +1,84 @@
+@model StudyConnect.Models.TaiLieuClb
+@{
+    ViewData["Title"] = Model.TieuDe;
+
+    var filePath = Model.TepDinhKem ?? "";
+    var hasFile = !string.IsNullOrWhiteSpace(filePath) && filePath != "#";
+    var extension = hasFile ? System.IO.Path.GetExtension(filePath).ToLowerInvariant() : "";
+    var isPdf = extension == ".pdf";
+    var isImage = extension is ".png" or ".jpg" or ".jpeg" or ".gif" or ".webp";
+    var isText = extension == ".txt";
+    var displayType = string.IsNullOrWhiteSpace(extension) ? "Tài liệu" : extension.TrimStart('.').ToUpperInvariant();
+}
+
+<main class="document-viewer-page">
+    <header class="document-viewer-header">
+        <a class="brand" asp-controller="Home" asp-action="Index" aria-label="StudyConnect trang chủ">
+            <span class="brand-icon"><span></span><span></span><span></span></span>
+            <span><strong>StudyConnect</strong><small>Học 1-1 • Kết nối • Phát triển</small></span>
+        </a>
+        <div class="document-viewer-actions">
+            <a class="btn btn-light" asp-controller="Home" asp-action="CauLacBo" asp-fragment="tai-lieu-clb">Quay lại CLB</a>
+            @if (hasFile)
+            {
+                <a class="btn btn-outline" href="@filePath" target="_blank" rel="noopener">Mở tệp gốc</a>
+                <a class="btn btn-primary" href="@filePath" download>Tải xuống</a>
+            }
+        </div>
+    </header>
+
+    <section class="document-viewer-shell">
+        <aside class="document-meta-card">
+            <span class="document-type-badge">@displayType</span>
+            <h1>@Model.TieuDe</h1>
+            <p>@(Model.MoTa ?? "Tài liệu được chia sẻ trong cộng đồng CLB.")</p>
+            <dl>
+                <div>
+                    <dt>CLB</dt>
+                    <dd>@Model.MaClbNavigation.TenClb</dd>
+                </div>
+                <div>
+                    <dt>Người đăng</dt>
+                    <dd>@(Model.NguoiDangNavigation?.HoTen ?? "Thành viên CLB")</dd>
+                </div>
+                <div>
+                    <dt>Ngày đăng</dt>
+                    <dd>@(Model.NgayDang?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa cập nhật")</dd>
+                </div>
+            </dl>
+        </aside>
+
+        <section class="document-preview-card">
+            @if (!hasFile)
+            {
+                <div class="document-empty-preview">
+                    <span>TL</span>
+                    <h2>Tài liệu mẫu chưa có tệp đính kèm</h2>
+                    <p>Bạn vẫn có thể xem thông tin tài liệu. Khi thành viên hoặc Chủ nhiệm CLB tải file lên, nội dung sẽ được mở trực tiếp tại đây.</p>
+                </div>
+            }
+            else if (isPdf || isText)
+            {
+                <iframe class="document-preview-frame" src="@filePath" title="@Model.TieuDe"></iframe>
+            }
+            else if (isImage)
+            {
+                <div class="document-image-preview">
+                    <img src="@filePath" alt="@Model.TieuDe" />
+                </div>
+            }
+            else
+            {
+                <div class="document-empty-preview">
+                    <span>@displayType</span>
+                    <h2>Định dạng này cần mở bằng ứng dụng phù hợp</h2>
+                    <p>Trình duyệt có thể không xem trực tiếp Word, PowerPoint, Excel hoặc file nén. Hãy dùng nút mở tệp gốc hoặc tải xuống để xem đầy đủ.</p>
+                    <div class="document-inline-actions">
+                        <a class="btn btn-outline" href="@filePath" target="_blank" rel="noopener">Mở tệp gốc</a>
+                        <a class="btn btn-primary" href="@filePath" download>Tải xuống</a>
+                    </div>
+                </div>
+            }
+        </section>
+    </section>
+</main>

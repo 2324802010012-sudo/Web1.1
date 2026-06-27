@@ -1,16 +1,36 @@
 ﻿@model StudyConnect.ViewModels.SinhVienHoSoViewModel
 @{
     ViewData["Title"] = "Cập nhật hồ sơ sinh viên";
-    var slots = new[]
+    var days = new[]
     {
-        ("2|18:00|20:00", "Thứ 2", "18:00 - 20:00"),
-        ("3|19:00|21:00", "Thứ 3", "19:00 - 21:00"),
-        ("4|18:30|20:30", "Thứ 4", "18:30 - 20:30"),
-        ("5|19:00|21:00", "Thứ 5", "19:00 - 21:00"),
-        ("6|20:00|22:00", "Thứ 6", "20:00 - 22:00"),
-        ("7|08:00|10:00", "Thứ 7", "08:00 - 10:00"),
-        ("8|09:00|11:00", "Chủ nhật", "09:00 - 11:00")
+        (Value: 2, Label: "Thứ 2"),
+        (Value: 3, Label: "Thứ 3"),
+        (Value: 4, Label: "Thứ 4"),
+        (Value: 5, Label: "Thứ 5"),
+        (Value: 6, Label: "Thứ 6"),
+        (Value: 7, Label: "Thứ 7"),
+        (Value: 8, Label: "Chủ nhật")
     };
+    var timeSlots = new[]
+    {
+        (Start: "07:00", End: "09:00", Label: "Sáng sớm"),
+        (Start: "09:00", End: "11:00", Label: "Sáng"),
+        (Start: "13:30", End: "15:30", Label: "Chiều 1"),
+        (Start: "15:30", End: "17:30", Label: "Chiều 2"),
+        (Start: "18:00", End: "20:00", Label: "Tối 1"),
+        (Start: "20:00", End: "22:00", Label: "Tối 2")
+    };
+    var presetValues = days.SelectMany(day => timeSlots.Select(slot => $"{day.Value}|{slot.Start}|{slot.End}")).ToHashSet();
+    var customSlots = Model.LichRanhDaChon.Where(value => !presetValues.Contains(value)).Distinct().ToList();
+    var studyHistory = ViewBag.StudyHistory as List<StudyConnect.Models.LichHoc> ?? [];
+
+    string SlotLabel(string value)
+    {
+        var parts = value.Split('|');
+        if (parts.Length != 3) return value;
+        var day = days.FirstOrDefault(d => d.Value.ToString() == parts[0]).Label ?? $"Thứ {parts[0]}";
+        return $"{day} • {parts[1]} - {parts[2]}";
+    }
 }
 
 <main class="study-flow-page">
@@ -21,6 +41,7 @@
         <a asp-controller="YeuCauHoTroHocTaps" asp-action="Create">2. Tạo yêu cầu</a>
         <a asp-controller="Home" asp-action="Hoc11" asp-fragment="mentor-goi-y">3. Gợi ý mentor</a>
         <a asp-controller="YeuCauHoTroHocTaps" asp-action="Index">4. Ghép nối & lịch học</a>
+        <a href="#lich-su-hoc">Lịch sử học</a>
         <a asp-controller="SinhVien" asp-action="Index">Dashboard sinh viên</a>
     </aside>
 
@@ -41,10 +62,14 @@
         {
             <div class="flow-alert success">@success</div>
         }
+        @if (ViewBag.ErrorMessage is string errorMessage)
+        {
+            <div class="flow-alert error">@errorMessage</div>
+        }
 
-        <form asp-action="HoSo" method="post" class="flow-card profile-update-card">
+        <form asp-action="HoSo" method="post" class="flow-card profile-update-card" novalidate>
             <input type="hidden" asp-for="ReturnUrl" />
-            <div asp-validation-summary="ModelOnly" class="alert error"></div>
+            <div asp-validation-summary="All" class="alert error"></div>
 
             <div class="flow-section-title"><span>1</span><h2>Thông tin học tập</h2></div>
             <div class="request-grid two">
@@ -65,7 +90,7 @@
                 </label>
                 <label class="request-field">
                     <span>GPA</span>
-                    <input asp-for="Gpa" placeholder="VD: 3.2" />
+                    <input asp-for="Gpa" type="text" inputmode="decimal" placeholder="VD: 3.2 hoặc 3,2" />
                     <small asp-validation-for="Gpa"></small>
                 </label>
             </div>
@@ -83,16 +108,51 @@
             </label>
 
             <div class="flow-section-title"><span>3</span><h2>Lịch rảnh</h2></div>
-            <div class="slot-grid">
-                @foreach (var slot in slots)
+            <p class="flow-muted">Chọn nhiều khung giờ bạn có thể học 1-1. Hệ thống sẽ dùng dữ liệu này để so khớp với lịch rảnh của mentor.</p>
+            <div class="availability-matrix">
+                @foreach (var day in days)
                 {
-                    <label class="slot-check">
-                        <input type="checkbox" name="LichRanhDaChon" value="@slot.Item1" checked="@(Model.LichRanhDaChon.Contains(slot.Item1))" />
-                        <strong>@slot.Item2</strong>
-                        <span>@slot.Item3</span>
-                    </label>
+                    <section class="availability-day">
+                        <h3>@day.Label</h3>
+                        @foreach (var slot in timeSlots)
+                        {
+                            var value = $"{day.Value}|{slot.Start}|{slot.End}";
+                            <label class="slot-check compact">
+                                <input type="checkbox" name="LichRanhDaChon" value="@value" checked="@(Model.LichRanhDaChon.Contains(value))" />
+                                <strong>@slot.Label</strong>
+                                <span>@slot.Start - @slot.End</span>
+                            </label>
+                        }
+                    </section>
                 }
             </div>
+
+            <section class="custom-slot-box">
+                <div>
+                    <h3>Thêm khung giờ riêng</h3>
+                    <p>Chủ động thêm giờ rảnh khác, ví dụ 19:30 - 21:00 hoặc cuối tuần.</p>
+                </div>
+                <div class="custom-slot-form">
+                    <select id="customSlotDay" aria-label="Chọn ngày">
+                        @foreach (var day in days)
+                        {
+                            <option value="@day.Value">@day.Label</option>
+                        }
+                    </select>
+                    <input id="customSlotStart" type="time" value="19:00" aria-label="Giờ bắt đầu" />
+                    <input id="customSlotEnd" type="time" value="21:00" aria-label="Giờ kết thúc" />
+                    <button class="btn btn-light" id="addCustomSlot" type="button">Thêm khung giờ</button>
+                </div>
+                <div class="custom-slot-list" id="customSlotList">
+                    @foreach (var slot in customSlots)
+                    {
+                        <label class="custom-slot-chip">
+                            <input type="checkbox" name="LichRanhDaChon" value="@slot" checked />
+                            <span>@SlotLabel(slot)</span>
+                        </label>
+                    }
+                </div>
+            </section>
             <small class="field-validation-valid" asp-validation-for="LichRanhDaChon"></small>
 
             <div class="flow-actions">
@@ -100,9 +160,78 @@
                 <button class="btn btn-primary" type="submit">Lưu hồ sơ và tiếp tục</button>
             </div>
         </form>
+
+        <section class="flow-card student-history-card" id="lich-su-hoc">
+            <div class="flow-section-title"><span>4</span><h2>Lịch sử học 1-1</h2></div>
+            @if (!studyHistory.Any())
+            {
+                <p class="empty-text">Bạn chưa có buổi học nào. Sau khi ghép nối và lên lịch, lịch sử học sẽ hiển thị tại đây.</p>
+            }
+            else
+            {
+                <div class="student-study-history">
+                    @foreach (var session in studyHistory)
+                    {
+                        var request = session.MaGhepNoiNavigation.MaYeuCauNavigation;
+                        var mentor = session.MaGhepNoiNavigation.MaHuongDanNavigation;
+                        var completed = session.TrangThai == "Đã hoàn thành" || session.BaoCaoBuoiHoc != null;
+                        <article>
+                            <time>
+                                <strong>@session.NgayHoc.ToString("dd/MM")</strong>
+                                <span>@session.GioBatDau.ToString("HH:mm") - @session.GioKetThuc.ToString("HH:mm")</span>
+                            </time>
+                            <div>
+                                <h3>@request.MaLinhVucNavigation.TenLinhVuc</h3>
+                                <p>Mentor: @mentor.MaTaiKhoanNavigation.HoTen • @(session.HinhThuc ?? "Linh hoạt") • @(session.DiaDiem ?? session.LinkOnline ?? "Chưa cập nhật địa điểm")</p>
+                                @if (session.BaoCaoBuoiHoc != null)
+                                {
+                                    <small>Báo cáo: @session.BaoCaoBuoiHoc.NoiDungDaHoc</small>
+                                }
+                            </div>
+                            <a class="history-status @(completed ? "done" : "")" asp-controller="YeuCauHoTroHocTaps" asp-action="Details" asp-route-id="@request.MaYeuCau">
+                                @(completed ? "Đã học" : session.TrangThai ?? "Đang lên lịch")
+                            </a>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
     </section>
 </main>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        (() => {
+            const days = {
+                2: "Thứ 2",
+                3: "Thứ 3",
+                4: "Thứ 4",
+                5: "Thứ 5",
+                6: "Thứ 6",
+                7: "Thứ 7",
+                8: "Chủ nhật"
+            };
+            const list = document.getElementById("customSlotList");
+            const addButton = document.getElementById("addCustomSlot");
+            if (!list || !addButton) return;
+
+            addButton.addEventListener("click", () => {
+                const day = document.getElementById("customSlotDay").value;
+                const start = document.getElementById("customSlotStart").value;
+                const end = document.getElementById("customSlotEnd").value;
+                if (!day || !start || !end || start >= end) {
+                    alert("Vui lòng chọn giờ bắt đầu nhỏ hơn giờ kết thúc.");
+                    return;
+                }
+
+                const value = `${day}|${start}|${end}`;
+                if (document.querySelector(`input[name="LichRanhDaChon"][value="${value}"]`)) return;
+
+                const label = document.createElement("label");
+                label.className = "custom-slot-chip";
+                label.innerHTML = `<input type="checkbox" name="LichRanhDaChon" value="${value}" checked><span>${days[day]} • ${start} - ${end}</span>`;
+                list.appendChild(label);
+            });
+        })();
+    </script>
 }

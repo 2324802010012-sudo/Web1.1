@@ -35,13 +35,13 @@
         <header class="flow-title">
             <div>
                 <h1>Đăng ký làm mentor</h1>
-                <p>Điền thông tin chuyên môn, minh chứng năng lực và lịch rảnh để cố vấn xét duyệt trước khi bạn trở thành mentor.</p>
+                <p>Điền thông tin trình độ, kỹ năng, minh chứng chuyên môn và lịch rảnh. Hồ sơ sẽ được gửi trực tiếp cho cố vấn duyệt.</p>
             </div>
             <a class="btn btn-light" asp-controller="SinhVien" asp-action="Index">Quay lại dashboard</a>
         </header>
 
         <div class="request-layout schedule-layout-wide">
-            <form asp-action="Create" method="post" class="flow-card request-form-card">
+            <form asp-action="Create" method="post" enctype="multipart/form-data" class="flow-card request-form-card">
                 <div asp-validation-summary="ModelOnly" class="alert error"></div>
 
                 <div class="flow-section-title"><span>1</span><h2>Chuyên môn đăng ký</h2></div>
@@ -58,11 +58,22 @@
                     </label>
                 </div>
 
-                <label class="request-field">
-                    <span>Minh chứng</span>
-                    <input asp-for="MinhChung" placeholder="Link điểm môn, dự án, GitHub, chứng chỉ..." />
-                    <small asp-validation-for="MinhChung"></small>
-                </label>
+                <div class="request-grid two">
+                    <label class="request-field">
+                        <span>Upload bằng chứng chuyên môn/kỹ năng</span>
+                        <input asp-for="BangChungFile" type="file" />
+                        <small asp-validation-for="BangChungFile"></small>
+                    </label>
+                    <label class="request-field">
+                        <span>Link minh chứng nếu có</span>
+                        <input asp-for="MinhChung" placeholder="GitHub, chứng chỉ, bảng điểm online..." />
+                        <small asp-validation-for="MinhChung"></small>
+                    </label>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Model.BangChungDaTai))
+                {
+                    <div class="flow-alert">Minh chứng hiện tại: <strong>@Model.BangChungDaTai</strong></div>
+                }
 
                 <label class="request-field">
                     <span>Kinh nghiệm và lý do muốn làm mentor</span>
@@ -106,8 +117,8 @@
                 <section class="flow-card compact-summary">
                     <h2>Quy trình xét duyệt</h2>
                     <dl>
-                        <dt>1. Sinh viên gửi đơn</dt><dd>Gồm lĩnh vực, điểm môn, minh chứng, kinh nghiệm và lịch rảnh.</dd>
-                        <dt>2. Cố vấn xem chi tiết</dt><dd>Cố vấn kiểm tra năng lực chuyên môn và quyết định duyệt hoặc từ chối.</dd>
+                        <dt>1. Sinh viên gửi đơn</dt><dd>Gồm lĩnh vực, điểm môn, minh chứng chuyên môn/kỹ năng, kinh nghiệm và lịch rảnh.</dd>
+                        <dt>2. Cố vấn duyệt chuyên môn</dt><dd>Cố vấn kiểm tra năng lực, minh chứng và quyết định duyệt hoặc từ chối.</dd>
                         <dt>3. Được duyệt</dt><dd>Tài khoản chuyển sang vai trò Mentor và xuất hiện trong danh sách gợi ý.</dd>
                     </dl>
                 </section>

@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Cộng đồng CLB";
     var isLoggedIn = Context.Session.GetInt32("UserId").HasValue;
+    var currentUserId = Context.Session.GetInt32("UserId");
     var now = DateTime.Now;
 
     bool IsMember(int clbId) => Model.MyMemberships.Any(t => t.MaClb == clbId);
@@ -143,6 +144,42 @@
 
         <section class="club-panel" id="tai-lieu-clb">
             <div class="club-panel-head"><h2>Tài liệu CLB</h2><a href="#featured-clubs">Tham gia CLB</a></div>
+            @if (isLoggedIn && Model.MyMemberships.Any())
+            {
+                <form asp-controller="Clb" asp-action="UploadDocument" method="post" enctype="multipart/form-data" class="club-upload-form">
+                    <input type="hidden" name="returnTo" value="Home" />
+                    <div>
+                        <label>CLB đăng tài liệu</label>
+                        <select name="clbId" required>
+                            @foreach (var membership in Model.MyMemberships)
+                            {
+                                <option value="@membership.MaClb">@membership.MaClbNavigation.TenClb</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label>Tên tài liệu</label>
+                        <input name="tieuDe" maxlength="200" placeholder="Ví dụ: Tài liệu SQL nâng cao" required />
+                    </div>
+                    <div>
+                        <label>Tệp đính kèm</label>
+                        <input name="tepTaiLieu" type="file" required />
+                    </div>
+                    <div class="club-upload-wide">
+                        <label>Mô tả ngắn</label>
+                        <textarea name="moTa" rows="2" placeholder="Nội dung tài liệu, môn học hoặc hoạt động liên quan"></textarea>
+                    </div>
+                    <button type="submit">Tải tài liệu lên</button>
+                </form>
+            }
+            else if (isLoggedIn)
+            {
+                <div class="club-login-note">Bạn cần tham gia ít nhất một CLB trước khi tải tài liệu lên.</div>
+            }
+            else
+            {
+                <div class="club-login-note">Đăng nhập và tham gia CLB để chia sẻ tài liệu cho cộng đồng.</div>
+            }
             <div class="club-document-list">
                 @if (!Model.Documents.Any())
                 {
@@ -155,12 +192,19 @@
                         <div>
                             <h3>@document.TieuDe</h3>
                             <p>@(document.MoTa ?? "Tài liệu học tập được chia sẻ trong cộng đồng CLB.")</p>
-                            <small>@document.MaClbNavigation.TenClb • @(document.NgayDang?.ToString("dd/MM/yyyy") ?? "Chưa rõ ngày")</small>
+                            <small>@document.MaClbNavigation.TenClb • @(document.NguoiDangNavigation?.HoTen ?? "Thành viên CLB") • @(document.NgayDang?.ToString("dd/MM/yyyy") ?? "Chưa rõ ngày")</small>
                         </div>
-                        @if (!string.IsNullOrWhiteSpace(document.TepDinhKem))
-                        {
-                            <a class="btn btn-outline" href="@document.TepDinhKem">Mở</a>
-                        }
+                        <div class="club-document-actions">
+                            <a class="btn btn-outline" asp-controller="Clb" asp-action="ViewDocument" asp-route-id="@document.MaTaiLieu">Mở</a>
+                            @if (document.NguoiDang == currentUserId)
+                            {
+                                <form asp-controller="Clb" asp-action="DeleteDocument" method="post">
+                                    <input type="hidden" name="id" value="@document.MaTaiLieu" />
+                                    <input type="hidden" name="returnTo" value="Home" />
+                                    <button type="submit" class="btn btn-light">Xóa</button>
+                                </form>
+                            }
+                        </div>
                     </article>
                 }
             </div>
@@ -191,7 +235,7 @@
                         .ToList();
                     var totalVotes = dot.PhieuBauPhoChuNhiems.Count;
                     var members = dot.MaClbNavigation.ThanhVienClbs
-                        .Where(t => t.TrangThai == null || t.TrangThai == "Hoạt động")
+                        .Where(t => t.TrangThai == null || (t.TrangThai != "Đã rời" && t.TrangThai != "Đã khóa"))
                         .OrderBy(t => t.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen)
                         .ToList();
                     var votedCandidate = Model.MyVotesByElection.TryGetValue(dot.MaDot, out var selectedCandidate) ? selectedCandidate : 0;

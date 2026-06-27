@@ -1,163 +1,154 @@
-﻿@{
-    ViewData["Title"] = "Admin Dashboard";
-    Layout = null;
+@using StudyConnect.Models
+@using StudyConnect.ViewModels
+@{
+    ViewData["Title"] = "Quản trị hệ thống";
+    var roleStats = ViewBag.RoleStats as Dictionary<string, int> ?? [];
+    var recentAccounts = ViewBag.RecentAccounts as List<TaiKhoan> ?? [];
+    var chuNhiemAccounts = ViewBag.ChuNhiemAccounts as List<TaiKhoan> ?? [];
+    var clubs = ViewBag.Clubs as List<CauLacBo> ?? [];
+    var clubManagers = ViewBag.ClubManagers as List<ThanhVienClb> ?? [];
 }
 
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="utf-8" />
-    <title>Admin - StudyConnect</title>
-    <link rel="stylesheet" href="~/css/admin.css" />
-</head>
-<body>
-    <div class="admin-layout">
+<main class="role-dashboard admin-system-dashboard">
+    <aside class="role-sidebar">
+        <a class="role-brand" asp-controller="Admin" asp-action="Index">StudyConnect</a>
+        <p>Quản trị hệ thống</p>
+        <a class="active" href="#tong-quan">Tổng quan</a>
+        <a asp-controller="TaiKhoans" asp-action="Index">Tài khoản</a>
+        <a asp-controller="TaiKhoans" asp-action="Create">Tạo tài khoản</a>
+        <a asp-controller="LinhVucHocTaps" asp-action="Index">Danh mục lĩnh vực</a>
+        <a href="#phan-quyen">Phân quyền</a>
+        <a href="#cap-quyen-clb">Cấp quyền CLB</a>
+        <a href="#cau-hinh">Cấu hình</a>
+    </aside>
 
-        <aside class="sidebar">
-            <div class="logo">
-                <div class="logo-icon">🎓</div>
+    <section class="role-main">
+        <header class="role-header">
+            <div>
+                <p class="eyebrow">Admin hệ thống</p>
+                <h1>Quản trị nền tảng StudyConnect</h1>
+                <span>Admin chỉ quản lý tài khoản, phân quyền, danh mục và trạng thái hệ thống. Các nghiệp vụ học 1-1, mentor, CLB thuộc dashboard vai trò tương ứng.</span>
+            </div>
+            <form asp-controller="TaiKhoans" asp-action="Logout" method="post"><button class="btn btn-outline" type="submit">Đăng xuất</button></form>
+        </header>
+
+        <section class="role-stats admin-system-stats" id="tong-quan">
+            <article><small>Tổng tài khoản</small><strong>@ViewBag.TongTaiKhoan</strong></article>
+            <article><small>Đang hoạt động</small><strong>@ViewBag.TaiKhoanHoatDong</strong></article>
+            <article><small>Bị khóa</small><strong>@ViewBag.TaiKhoanBiKhoa</strong></article>
+            <article><small>Vai trò hệ thống</small><strong>@ViewBag.TongVaiTro</strong></article>
+            <article><small>Danh mục lĩnh vực</small><strong>@ViewBag.LinhVuc</strong></article>
+        </section>
+
+        <section class="role-panel" id="phan-quyen">
+            <div class="role-panel-head">
                 <div>
-                    <h2>StudyConnect</h2>
-                    <p>Học 1-1 • Kết nối • Phát triển</p>
+                    <p class="eyebrow">Tài khoản & phân quyền</p>
+                    <h2>Phân bổ người dùng theo vai trò</h2>
                 </div>
+                <a asp-controller="TaiKhoans" asp-action="Index">Quản lý tài khoản</a>
             </div>
-
-            <nav>
-                <a class="active" href="/Admin">🏠 Tổng quan</a>
-                <a href="/TaiKhoans">👥 Người dùng</a>
-                <a href="#">🔐 Vai trò & quyền hạn</a>
-                <a href="#">📋 Yêu cầu đăng ký</a>
-                <a href="/LinhVucHocTaps">📚 Lĩnh vực học tập</a>
-                <a href="/CauLacBos">👨‍👩‍👧‍👦 CLB & Cộng đồng</a>
-                <a href="#">📝 Nội dung</a>
-                <a href="#">📊 Báo cáo & Thống kê</a>
-                <a href="#">⚙️ Cấu hình hệ thống</a>
-            </nav>
-
-            <div class="support">
-                <b>🎧 Trung tâm hỗ trợ</b>
-                <p>Liên hệ hỗ trợ hệ thống</p>
+            <div class="admin-role-grid">
+                @foreach (var role in AccountRoles.All)
+                {
+                    var count = roleStats.TryGetValue(role, out var roleCount) ? roleCount : 0;
+                    <article>
+                        <span>@role[..1]</span>
+                        <strong>@AccountRoles.DisplayName(role)</strong>
+                        <small>@count tài khoản</small>
+                    </article>
+                }
             </div>
-        </aside>
+        </section>
 
-        <main class="main">
-            <header class="topbar">
-                <h1>Tổng quan</h1>
+        <section class="role-panel" id="cap-quyen-clb">
+            <div class="role-panel-head">
+                <div>
+                    <p class="eyebrow">Chủ nhiệm CLB</p>
+                    <h2>Cấp quyền quản lý nội bộ CLB</h2>
+                </div>
+                <strong>@clubManagers.Count phân công</strong>
+            </div>
+            <form asp-action="AssignClubManager" method="post" class="manager-action-form">
+                <label><span>Tài khoản</span>
+                    <select name="taiKhoanId" required>
+                        @foreach (var account in chuNhiemAccounts)
+                        {
+                            <option value="@account.MaTaiKhoan">@account.HoTen - @account.Email (@AccountRoles.DisplayName(account.VaiTro))</option>
+                        }
+                    </select>
+                </label>
+                <label><span>CLB được quản lý</span>
+                    <select name="clbId" required>
+                        @foreach (var club in clubs)
+                        {
+                            <option value="@club.MaClb">@club.TenClb</option>
+                        }
+                    </select>
+                </label>
+                <button type="submit">Cấp quyền Chủ nhiệm</button>
+            </form>
 
-                <div class="top-actions">
-                    <input type="text" placeholder="Tìm kiếm..." />
-                    <span class="bell">🔔</span>
-                    <div class="admin-user">
-                        <div class="avatar">A</div>
+            <div class="manager-member-list">
+                @if (!clubManagers.Any())
+                {
+                    <p class="empty-text">Chưa có Chủ nhiệm CLB nào được gán vào CLB.</p>
+                }
+                @foreach (var manager in clubManagers)
+                {
+                    <div class="manager-member-row">
                         <div>
-                            <b>Admin</b>
-                            <p>Quản trị viên</p>
+                            <strong>@manager.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen</strong>
+                            <small>@manager.MaSinhVienNavigation.MaTaiKhoanNavigation.Email</small>
                         </div>
+                        <span>@manager.MaClbNavigation.TenClb</span>
+                        <span>@(manager.TrangThai ?? "Hoạt động")</span>
                     </div>
-                    <form class="admin-logout-form" asp-controller="TaiKhoans" asp-action="Logout" method="post">
-                        <button type="submit">Đăng xuất</button>
-                    </form>
-                </div>
-            </header>
+                }
+            </div>
+        </section>
 
-            <section class="cards">
-                <div class="card blue">
-                    <span>👥</span>
-                    <p>Tổng người dùng</p>
-                    <h2>@ViewBag.TongNguoiDung</h2>
-                    <small>+ 12.5% so với kỳ trước</small>
+        <section class="role-panel">
+            <div class="role-panel-head">
+                <div>
+                    <p class="eyebrow">Tài khoản mới</p>
+                    <h2>Người dùng được tạo gần đây</h2>
                 </div>
-
-                <div class="card green">
-                    <span>🎓</span>
-                    <p>Sinh viên</p>
-                    <h2>@ViewBag.SinhVien</h2>
-                    <small>+ 10.3% so với kỳ trước</small>
-                </div>
-
-                <div class="card purple">
-                    <span>⭐</span>
-                    <p>Mentor</p>
-                    <h2>@ViewBag.Mentor</h2>
-                    <small>+ 8.7% so với kỳ trước</small>
-                </div>
-
-                <div class="card orange">
-                    <span>📅</span>
-                    <p>Buổi học đã diễn ra</p>
-                    <h2>@ViewBag.BuoiHoc</h2>
-                    <small>+ 15.2% so với kỳ trước</small>
-                </div>
-
-                <div class="card blue">
-                    <span>🛡️</span>
-                    <p>CLB hoạt động</p>
-                    <h2>@ViewBag.CLB</h2>
-                    <small>+ 7.0% so với kỳ trước</small>
-                </div>
-
-                <div class="card red">
-                    <span>📄</span>
-                    <p>Yêu cầu đang xử lý</p>
-                    <h2>@ViewBag.YeuCau</h2>
-                    <small class="down">- 4.1% so với kỳ trước</small>
-                </div>
-            </section>
-
-            <section class="dashboard-grid">
-                <div class="panel large">
-                    <h3>Thống kê buổi học</h3>
-                    <div class="chart-placeholder">
-                        <div class="line"></div>
-                        <p>Biểu đồ buổi học theo thời gian</p>
+                <a asp-controller="TaiKhoans" asp-action="Create">Tạo tài khoản mới</a>
+            </div>
+            <div class="admin-account-table">
+                <div class="admin-account-head"><span>Người dùng</span><span>Email</span><span>Vai trò</span><span>Trạng thái</span><span>Ngày tạo</span></div>
+                @if (!recentAccounts.Any())
+                {
+                    <p class="empty-text">Chưa có tài khoản nào.</p>
+                }
+                @foreach (var account in recentAccounts)
+                {
+                    <div>
+                        <strong>@account.HoTen</strong>
+                        <span>@account.Email</span>
+                        <span>@AccountRoles.DisplayName(account.VaiTro)</span>
+                        <em>@(account.TrangThai ?? "Hoạt động")</em>
+                        <small>@(account.NgayTao?.ToString("dd/MM/yyyy") ?? "-")</small>
                     </div>
-                </div>
+                }
+            </div>
+        </section>
 
-                <div class="panel">
-                    <h3>Phân bổ người dùng theo vai trò</h3>
-                    <div class="donut">12.568<br><small>Tổng</small></div>
-                    <ul class="legend">
-                        <li><span class="dot blue-dot"></span>Sinh viên thường</li>
-                        <li><span class="dot green-dot"></span>Sinh viên CLB</li>
-                        <li><span class="dot purple-dot"></span>Mentor</li>
-                        <li><span class="dot orange-dot"></span>Giảng viên</li>
-                    </ul>
+        <section class="role-panel" id="cau-hinh">
+            <div class="role-panel-head">
+                <div>
+                    <p class="eyebrow">Phạm vi admin</p>
+                    <h2>Chức năng quản trị hệ thống</h2>
                 </div>
-
-                <div class="panel">
-                    <h3>Yêu cầu đang chờ xử lý</h3>
-                    <table>
-                        <tr><th>Loại yêu cầu</th><th>Số lượng</th></tr>
-                        <tr><td>Đăng ký làm mentor</td><td>45</td></tr>
-                        <tr><td>Xác nhận CLB</td><td>28</td></tr>
-                        <tr><td>Duyệt chuyên môn</td><td>32</td></tr>
-                        <tr><td>Đề cử Phó chủ nhiệm</td><td>23</td></tr>
-                    </table>
-                    <button>Xem tất cả yêu cầu</button>
-                </div>
-
-                <div class="panel">
-                    <h3>Hoạt động mới nhất</h3>
-                    <ul class="activity">
-                        <li>Nguyễn Văn An đã đăng ký làm mentor</li>
-                        <li>CLB AI Club tạo hoạt động mới</li>
-                        <li>Trần Thị Mai hoàn thành buổi học</li>
-                        <li>Phạm Quốc Bảo đã được duyệt mentor</li>
-                    </ul>
-                </div>
-
-                <div class="panel">
-                    <h3>Thống kê theo lĩnh vực học tập</h3>
-                    <table>
-                        <tr><th>Lĩnh vực</th><th>Mentor</th><th>Yêu cầu</th></tr>
-                        <tr><td>Lập trình</td><td>568</td><td>1.124</td></tr>
-                        <tr><td>Cơ sở dữ liệu</td><td>196</td><td>432</td></tr>
-                        <tr><td>AI / Machine Learning</td><td>162</td><td>384</td></tr>
-                        <tr><td>An toàn thông tin</td><td>188</td><td>356</td></tr>
-                    </table>
-                </div>
-            </section>
-        </main>
-    </div>
-</body>
-</html>
+                <strong>@ViewBag.ThongBao thông báo</strong>
+            </div>
+            <div class="role-feature-grid admin-system-actions">
+                <article><span>TK</span><h3>Tài khoản</h3><p>Tạo, sửa, khóa/mở khóa tài khoản và cập nhật vai trò người dùng.</p><a asp-controller="TaiKhoans" asp-action="Index">Mở quản lý</a></article>
+                <article><span>VT</span><h3>Vai trò</h3><p>Kiểm soát nhóm quyền: Admin, Sinh viên, Mentor, Cố vấn và Chủ nhiệm CLB.</p><a asp-controller="TaiKhoans" asp-action="Create">Tạo theo vai trò</a></article>
+                <article><span>DM</span><h3>Danh mục</h3><p>Quản lý danh mục lĩnh vực học tập dùng chung cho mentor và yêu cầu học 1-1.</p><a asp-controller="LinhVucHocTaps" asp-action="Index">Mở danh mục</a></article>
+                <article><span>HT</span><h3>Hệ thống</h3><p>Theo dõi trạng thái tài khoản, thông báo và dữ liệu nền tảng chung.</p><a href="#tong-quan">Xem tổng quan</a></article>
+            </div>
+        </section>
+    </section>
+</main>

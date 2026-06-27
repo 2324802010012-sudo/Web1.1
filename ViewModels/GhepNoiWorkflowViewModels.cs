@@ -26,6 +26,8 @@ public class ScheduleSessionViewModel
 
     [StringLength(255)]
     public string? LinkOnline { get; set; }
+
+    public List<string> SelectedSlots { get; set; } = [];
 }
 
 public class BaoCaoBuoiHocViewModel

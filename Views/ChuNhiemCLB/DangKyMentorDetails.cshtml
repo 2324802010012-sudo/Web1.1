@@ -1,0 +1,71 @@
+@model StudyConnect.Models.DangKyHuongDan
+@{
+    ViewData["Title"] = "Xác nhận hồ sơ mentor CLB";
+    var account = Model.MaSinhVienNavigation.MaTaiKhoanNavigation;
+    var clubNames = ViewBag.ManagedClubNames as List<string> ?? [];
+}
+
+<main class="study-flow-page">
+    <aside class="study-side-nav">
+        <a class="role-brand" asp-controller="ChuNhiemCLB" asp-action="Index">StudyConnect</a>
+        <p>Chủ nhiệm CLB</p>
+        <a asp-controller="ChuNhiemCLB" asp-action="Index">Dashboard Chủ nhiệm</a>
+        <a class="active" asp-controller="ChuNhiemCLB" asp-action="DangKyMentorDetails" asp-route-id="@Model.MaDangKy">Xác nhận mentor</a>
+    </aside>
+
+    <section class="study-flow-main">
+        <div class="flow-breadcrumb">Chủ nhiệm CLB > Xác nhận đăng ký mentor</div>
+
+        @if (TempData["SuccessMessage"] is string success)
+        {
+            <div class="flow-alert success">@success</div>
+        }
+
+        <header class="flow-title">
+            <div>
+                <h1>@account.HoTen</h1>
+                <p>Xác nhận mức độ tham gia và uy tín CLB trước khi cố vấn duyệt chuyên môn.</p>
+            </div>
+            <a class="btn btn-light" asp-action="Index" asp-fragment="xac-nhan-mentor">Quay lại</a>
+        </header>
+
+        <div class="request-layout">
+            <section class="flow-card request-detail-card">
+                <div class="role-panel-head">
+                    <div>
+                        <p class="eyebrow">@string.Join(", ", clubNames)</p>
+                        <h2>Thông tin hồ sơ mentor</h2>
+                    </div>
+                    <span class="status-pill">@Model.TrangThaiClb</span>
+                </div>
+
+                <dl class="detail-list">
+                    <dt>Sinh viên</dt><dd>@account.HoTen - @account.Email</dd>
+                    <dt>Lĩnh vực đăng ký</dt><dd>@Model.MaLinhVucNavigation.TenLinhVuc</dd>
+                    <dt>Điểm môn</dt><dd>@(Model.DiemMon?.ToString("0.0") ?? "Chưa nhập")</dd>
+                    <dt>Minh chứng</dt><dd>@(string.IsNullOrWhiteSpace(Model.MinhChung) ? "Chưa nhập" : Model.MinhChung)</dd>
+                    <dt>Ngày gửi</dt><dd>@Model.NgayDangKy?.ToString("dd/MM/yyyy HH:mm")</dd>
+                </dl>
+
+                <h2>Kinh nghiệm và lý do</h2>
+                <pre class="problem-box">@Model.LyDo</pre>
+
+                <div class="flow-alert">
+                    Chủ nhiệm CLB chỉ xác nhận tư cách, uy tín và đóng góp trong CLB. Cố vấn vẫn là người duyệt năng lực chuyên môn cuối cùng.
+                </div>
+
+                <div class="flow-actions">
+                    @if (Model.TrangThaiClb == "Chờ xác nhận")
+                    {
+                        <form asp-action="TuChoiMentorClb" asp-route-id="@Model.MaDangKy" method="post"><button class="btn btn-light" type="submit">Từ chối xác nhận</button></form>
+                        <form asp-action="XacNhanMentorClb" asp-route-id="@Model.MaDangKy" method="post"><button class="btn btn-primary" type="submit">Xác nhận cho cố vấn duyệt</button></form>
+                    }
+                    else
+                    {
+                        <a class="btn btn-primary" asp-action="Index" asp-fragment="xac-nhan-mentor">Hoàn tất</a>
+                    }
+                </div>
+            </section>
+        </div>
+    </section>
+</main>

@@ -39,6 +39,7 @@ namespace StudyConnect.Controllers
                 .Include(m => m.GhepNoiHocTaps)
                     .ThenInclude(g => g.LichHocs)
                         .ThenInclude(l => l.BaoCaoBuoiHoc)
+                .Include(m => m.DanhGiaHuongDans)
                 .Where(m => m.TrangThai == null || m.TrangThai == "Hoạt động")
                 .Where(m => m.ChuyenMonNguoiHuongDans.Any())
                 .AsQueryable();
@@ -61,17 +62,17 @@ namespace StudyConnect.Controllers
             var mentors = await mentorQuery.ToListAsync();
             mentors = mentors
                 .OrderByDescending(m => CalculateFitPercent(m, linhVucId, cleanKeyword))
-                .ThenByDescending(m => m.DiemUyTin)
-                .ThenByDescending(m => m.DiemDanhGia)
+                .ThenByDescending(m => CalculateMentorQuality(m).Reputation)
+                .ThenByDescending(m => CalculateMentorQuality(m).AverageRating)
                 .Take(8)
                 .ToList();
 
             var activeMentorQuery = _context.NguoiHuongDans
                 .Where(m => m.TrangThai == null || m.TrangThai == "Hoạt động");
 
-            var averageRating = await activeMentorQuery
-                .Where(m => m.DiemDanhGia.HasValue)
-                .AverageAsync(m => (decimal?)m.DiemDanhGia) ?? 0;
+            var averageRating = await _context.DanhGiaHuongDans
+                .Where(d => d.SoSao.HasValue)
+                .AverageAsync(d => (decimal?)d.SoSao!.Value) ?? 0;
 
             var model = new Hoc11ViewModel
             {
@@ -103,6 +104,8 @@ namespace StudyConnect.Controllers
                     .ThenInclude(c => c.MaLinhVucNavigation)
                 .Include(m => m.GhepNoiHocTaps)
                     .ThenInclude(g => g.LichHocs)
+                        .ThenInclude(l => l.BaoCaoBuoiHoc)
+                .Include(m => m.DanhGiaHuongDans)
                 .FirstOrDefaultAsync(m => m.MaHuongDan == id && (m.TrangThai == null || m.TrangThai == "Hoạt động"));
 
             if (mentor == null) return NotFound();
@@ -159,7 +162,7 @@ namespace StudyConnect.Controllers
                 .Include(c => c.ThanhVienClbs)
                     .ThenInclude(t => t.MaSinhVienNavigation)
                         .ThenInclude(s => s.MaTaiKhoanNavigation)
-                .Where(c => c.TrangThai == null || c.TrangThai == "Hoạt động")
+                .Where(c => c.TrangThai == null || (c.TrangThai != "Ngừng hoạt động" && c.TrangThai != "Đã khóa"))
                 .OrderBy(c => c.TenClb)
                 .ToListAsync();
 
@@ -187,7 +190,7 @@ namespace StudyConnect.Controllers
                     ? []
                     : await _context.ThanhVienClbs
                         .Include(t => t.MaClbNavigation)
-                        .Where(t => t.MaSinhVien == sinhVien.MaSinhVien && (t.TrangThai == null || t.TrangThai == "Hoạt động"))
+                        .Where(t => t.MaSinhVien == sinhVien.MaSinhVien && (t.TrangThai == null || (t.TrangThai != "Đã rời" && t.TrangThai != "Đã khóa")))
                         .OrderBy(t => t.MaClbNavigation.TenClb)
                         .ToListAsync(),
                 Activities = await _context.HoatDongClbs
@@ -202,7 +205,7 @@ namespace StudyConnect.Controllers
                     .Take(10)
                     .ToListAsync(),
                 Elections = elections,
-                MemberCounts = clubs.ToDictionary(c => c.MaClb, c => c.ThanhVienClbs.Count(t => t.TrangThai == null || t.TrangThai == "Hoạt động")),
+                MemberCounts = clubs.ToDictionary(c => c.MaClb, c => c.ThanhVienClbs.Count(t => t.TrangThai == null || (t.TrangThai != "Đã rời" && t.TrangThai != "Đã khóa"))),
                 CandidateVoteCounts = elections
                     .SelectMany(d => d.UngVienPhoChuNhiems)
                     .ToDictionary(u => u.MaUngVien, u => elections
@@ -249,15 +252,17 @@ namespace StudyConnect.Controllers
                 completedSessions = mentor.GhepNoiHocTaps.Count;
             }
 
+            var quality = CalculateMentorQuality(mentor);
+
             return new Hoc11MentorCardViewModel
             {
                 MaHuongDan = mentor.MaHuongDan,
                 HoTen = mentor.MaTaiKhoanNavigation.HoTen,
                 AnhDaiDien = mentor.MaTaiKhoanNavigation.AnhDaiDien,
                 LoaiNguoiHuongDan = mentor.LoaiNguoiHuongDan,
-                DiemDanhGia = mentor.DiemDanhGia ?? 0,
-                SoLuotDanhGia = mentor.SoLuotDanhGia ?? 0,
-                DiemUyTin = mentor.DiemUyTin ?? 0,
+                DiemDanhGia = quality.AverageRating,
+                SoLuotDanhGia = quality.ReviewCount,
+                DiemUyTin = quality.Reputation,
                 SoBuoiHoTro = completedSessions,
                 TyLePhuHop = CalculateFitPercent(mentor, selectedFieldId, keyword),
                 TrangThaiLichRanh = firstSlot == null
@@ -270,9 +275,10 @@ namespace StudyConnect.Controllers
 
         private static int CalculateFitPercent(NguoiHuongDan mentor, int? selectedFieldId, string? keyword)
         {
+            var quality = CalculateMentorQuality(mentor);
             var score = 68m;
-            score += (mentor.DiemDanhGia ?? 0) * 4;
-            score += Math.Min(mentor.DiemUyTin ?? 0, 10);
+            score += quality.AverageRating * 4;
+            score += Math.Min(quality.Reputation, 10);
 
             if (selectedFieldId.HasValue && mentor.ChuyenMonNguoiHuongDans.Any(c => c.MaLinhVuc == selectedFieldId.Value))
             {
@@ -292,6 +298,42 @@ namespace StudyConnect.Controllers
 
             return Math.Clamp((int)Math.Round(score), 72, 99);
         }
+
+        private static MentorQualityMetrics CalculateMentorQuality(NguoiHuongDan mentor)
+        {
+            var ratings = mentor.DanhGiaHuongDans
+                .Where(d => d.SoSao.HasValue)
+                .Select(d => d.SoSao!.Value)
+                .ToList();
+
+            if (ratings.Count == 0)
+            {
+                ratings = mentor.GhepNoiHocTaps
+                    .SelectMany(g => g.DanhGiaHuongDans)
+                    .Where(d => d.SoSao.HasValue)
+                    .Select(d => d.SoSao!.Value)
+                    .ToList();
+            }
+
+            var reviewCount = ratings.Count;
+            var averageRating = reviewCount == 0 ? 0m : Math.Round((decimal)ratings.Average(), 2);
+            var completedSessions = mentor.GhepNoiHocTaps
+                .SelectMany(g => g.LichHocs)
+                .Count(l => l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
+            var reportCount = mentor.GhepNoiHocTaps
+                .SelectMany(g => g.LichHocs)
+                .Count(l => l.BaoCaoBuoiHoc != null);
+
+            var ratingScore = reviewCount == 0 ? 0m : averageRating / 5m * 6m;
+            var sessionScore = Math.Min(completedSessions, 30) / 30m * 2m;
+            var reportScore = completedSessions == 0 ? 0m : Math.Min(reportCount, completedSessions) / (decimal)completedSessions;
+            var reviewVolumeScore = Math.Min(reviewCount, 20) / 20m;
+            var reputation = Math.Round(Math.Clamp(ratingScore + sessionScore + reportScore + reviewVolumeScore, 0m, 10m), 2);
+
+            return new MentorQualityMetrics(reputation, averageRating, reviewCount);
+        }
+
+        private sealed record MentorQualityMetrics(decimal Reputation, decimal AverageRating, int ReviewCount);
 
         private static string FormatDay(int day)
         {

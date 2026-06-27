@@ -270,15 +270,39 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
             return RedirectToAction(nameof(Details), new { id = match.MaYeuCau });
         }
 
-        if (model.GioKetThuc <= model.GioBatDau)
+        var sharedSlots = BuildSharedSlots(match);
+        var selectedSlots = ParseSelectedSlots(model.SelectedSlots);
+
+        if (selectedSlots.Count == 0)
         {
-            ModelState.AddModelError(nameof(model.GioKetThuc), "Giờ kết thúc phải sau giờ bắt đầu.");
+            if (model.GioKetThuc <= model.GioBatDau)
+            {
+                ModelState.AddModelError(nameof(model.GioKetThuc), "Giờ kết thúc phải sau giờ bắt đầu.");
+            }
+
+            if (sharedSlots.Count > 0 && !IsInsideSharedAvailability(match, model.NgayHoc, model.GioBatDau, model.GioKetThuc))
+            {
+                ModelState.AddModelError(string.Empty, "Thời gian này chưa nằm trong lịch rảnh chung của sinh viên và mentor.");
+            }
+
+            if (ModelState.IsValid)
+            {
+                selectedSlots.Add((model.NgayHoc, model.GioBatDau, model.GioKetThuc));
+            }
         }
 
-        var sharedSlots = BuildSharedSlots(match);
-        if (sharedSlots.Count > 0 && !IsInsideSharedAvailability(match, model.NgayHoc, model.GioBatDau, model.GioKetThuc))
+        foreach (var slot in selectedSlots)
         {
-            ModelState.AddModelError(string.Empty, "Thời gian này chưa nằm trong lịch rảnh chung của sinh viên và mentor.");
+            if (slot.GioKetThuc <= slot.GioBatDau)
+            {
+                ModelState.AddModelError(nameof(model.SelectedSlots), $"Khung {slot.NgayHoc:dd/MM/yyyy} {slot.GioBatDau:hh\\:mm}-{slot.GioKetThuc:hh\\:mm} không hợp lệ.");
+                continue;
+            }
+
+            if (sharedSlots.Count > 0 && !IsInsideSharedAvailability(match, slot.NgayHoc, slot.GioBatDau, slot.GioKetThuc))
+            {
+                ModelState.AddModelError(nameof(model.SelectedSlots), $"Khung {slot.NgayHoc:dd/MM/yyyy} {slot.GioBatDau:hh\\:mm}-{slot.GioKetThuc:hh\\:mm} chưa nằm trong lịch rảnh chung.");
+            }
         }
 
         if (!ModelState.IsValid)
@@ -289,23 +313,46 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
             return View(model);
         }
 
-        _context.LichHocs.Add(new LichHoc
+        var existingKeys = match.LichHocs
+            .Select(l => $"{l.NgayHoc:yyyy-MM-dd}|{l.GioBatDau:HH\\:mm}|{l.GioKetThuc:HH\\:mm}")
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var newSlots = selectedSlots
+            .DistinctBy(s => $"{s.NgayHoc:yyyy-MM-dd}|{s.GioBatDau:hh\\:mm}|{s.GioKetThuc:hh\\:mm}")
+            .Where(s => !existingKeys.Contains($"{DateOnly.FromDateTime(s.NgayHoc):yyyy-MM-dd}|{TimeOnly.FromTimeSpan(s.GioBatDau):HH\\:mm}|{TimeOnly.FromTimeSpan(s.GioKetThuc):HH\\:mm}"))
+            .ToList();
+
+        if (newSlots.Count == 0)
         {
-            MaGhepNoi = match.MaGhepNoi,
-            NgayHoc = DateOnly.FromDateTime(model.NgayHoc),
-            GioBatDau = TimeOnly.FromTimeSpan(model.GioBatDau),
-            GioKetThuc = TimeOnly.FromTimeSpan(model.GioKetThuc),
-            HinhThuc = model.HinhThuc,
-            DiaDiem = string.IsNullOrWhiteSpace(model.DiaDiem) ? null : model.DiaDiem.Trim(),
-            LinkOnline = string.IsNullOrWhiteSpace(model.LinkOnline) ? null : model.LinkOnline.Trim(),
-            TrangThai = "Sắp diễn ra"
-        });
+            ModelState.AddModelError(nameof(model.SelectedSlots), "Các khung đã chọn đã tồn tại trong lịch học.");
+            ViewBag.Match = match;
+            ViewBag.SharedSlots = sharedSlots;
+            ViewBag.SuggestedSlots = BuildSuggestedSlots(match);
+            return View(model);
+        }
+
+        foreach (var slot in newSlots)
+        {
+            _context.LichHocs.Add(new LichHoc
+            {
+                MaGhepNoi = match.MaGhepNoi,
+                NgayHoc = DateOnly.FromDateTime(slot.NgayHoc),
+                GioBatDau = TimeOnly.FromTimeSpan(slot.GioBatDau),
+                GioKetThuc = TimeOnly.FromTimeSpan(slot.GioKetThuc),
+                HinhThuc = model.HinhThuc,
+                DiaDiem = string.IsNullOrWhiteSpace(model.DiaDiem) ? null : model.DiaDiem.Trim(),
+                LinkOnline = string.IsNullOrWhiteSpace(model.LinkOnline) ? null : model.LinkOnline.Trim(),
+                TrangThai = "Sắp diễn ra"
+            });
+        }
 
         match.TrangThai = "Đã lên lịch";
         match.MaYeuCauNavigation.TrangThai = "Đã lên lịch";
         await _context.SaveChangesAsync();
 
-        TempData["SuccessMessage"] = "Đã lên lịch học cho ghép nối. Sau buổi học, mentor sẽ lập báo cáo để bạn đánh giá.";
+        TempData["SuccessMessage"] = newSlots.Count == 1
+            ? "Đã lên lịch học cho ghép nối. Sau buổi học, mentor sẽ lập báo cáo để bạn đánh giá."
+            : $"Đã lên {newSlots.Count} buổi học cho ghép nối. Mentor sẽ thấy các lịch này trong dashboard.";
         return RedirectToAction(nameof(Details), new { id = match.MaYeuCau });
     }
 
@@ -417,19 +464,20 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
 
     private async Task RecalculateMentorRatingAsync(int mentorId)
     {
-        var mentor = await _context.NguoiHuongDans.FindAsync(mentorId);
+        var mentor = await _context.NguoiHuongDans
+            .Include(m => m.GhepNoiHocTaps)
+                .ThenInclude(g => g.LichHocs)
+                    .ThenInclude(l => l.BaoCaoBuoiHoc)
+            .Include(m => m.GhepNoiHocTaps)
+                .ThenInclude(g => g.DanhGiaHuongDans)
+            .FirstOrDefaultAsync(m => m.MaHuongDan == mentorId);
         if (mentor == null) return;
 
-        var ratings = await _context.DanhGiaHuongDans
-            .Where(d => d.MaHuongDan == mentorId && d.SoSao.HasValue)
-            .Select(d => d.SoSao!.Value)
-            .ToListAsync();
+        var metrics = CalculateMentorQuality(mentor);
 
-        if (ratings.Count == 0) return;
-
-        mentor.SoLuotDanhGia = ratings.Count;
-        mentor.DiemDanhGia = Math.Round((decimal)ratings.Average(), 2);
-        mentor.DiemUyTin = Math.Round(Math.Min(10m, (mentor.DiemDanhGia ?? 0) * 1.6m + Math.Min(ratings.Count, 20) * 0.1m), 2);
+        mentor.SoLuotDanhGia = metrics.ReviewCount;
+        mentor.DiemDanhGia = metrics.AverageRating;
+        mentor.DiemUyTin = metrics.Reputation;
         await _context.SaveChangesAsync();
     }
 
@@ -500,6 +548,8 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
                 .ThenInclude(c => c.MaLinhVucNavigation)
             .Include(m => m.GhepNoiHocTaps)
                 .ThenInclude(g => g.LichHocs)
+                    .ThenInclude(l => l.BaoCaoBuoiHoc)
+            .Include(m => m.DanhGiaHuongDans)
             .FirstOrDefaultAsync(m => m.MaHuongDan == mentorId.Value && (m.TrangThai == null || m.TrangThai == "Hoạt động"));
     }
 
@@ -545,6 +595,8 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
                 .ThenInclude(c => c.MaLinhVucNavigation)
             .Include(m => m.GhepNoiHocTaps)
                 .ThenInclude(g => g.LichHocs)
+                    .ThenInclude(l => l.BaoCaoBuoiHoc)
+            .Include(m => m.DanhGiaHuongDans)
             .Where(m => m.TrangThai == null || m.TrangThai == "Hoạt động")
             .Where(m => m.ChuyenMonNguoiHuongDans.Any())
             .ToListAsync();
@@ -553,8 +605,8 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
             .Select(m => new { Mentor = m, Score = AnalyzeMentor(m, maLinhVuc, requestText, sinhVien) })
             .Where(x => x.Score.Total >= 45)
             .OrderByDescending(x => x.Score.Total)
-            .ThenByDescending(x => x.Mentor.DiemUyTin)
-            .ThenByDescending(x => x.Mentor.DiemDanhGia)
+            .ThenByDescending(x => CalculateMentorQuality(x.Mentor).Reputation)
+            .ThenByDescending(x => CalculateMentorQuality(x.Mentor).AverageRating)
             .Take(8)
             .Select(x => new MentorSuggestionViewModel
             {
@@ -565,9 +617,9 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
                     .ThenByDescending(c => c.MucDoThanhThao ?? 0)
                     .Select(c => c.MaLinhVucNavigation.TenLinhVuc)
                     .Distinct()),
-                DiemUyTin = x.Mentor.DiemUyTin ?? 0,
-                DiemDanhGia = x.Mentor.DiemDanhGia ?? 0,
-                SoLuotDanhGia = x.Mentor.SoLuotDanhGia ?? 0,
+                DiemUyTin = CalculateMentorQuality(x.Mentor).Reputation,
+                DiemDanhGia = CalculateMentorQuality(x.Mentor).AverageRating,
+                SoLuotDanhGia = CalculateMentorQuality(x.Mentor).ReviewCount,
                 DiemPhuHop = x.Score.Total,
                 TaiHienTai = x.Score.ActiveLoad,
                 LyDoGoiY = x.Score.Reasons,
@@ -604,16 +656,17 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         var scheduleScore = Math.Min(16m, sharedSlots.Count * 4m);
         if (sharedSlots.Count > 0) reasons.Add($"Có {sharedSlots.Count} khung lịch rảnh chung");
 
-        var ratingScore = Math.Min(12m, (mentor.DiemDanhGia ?? 0) / 5m * 12m);
-        if ((mentor.DiemDanhGia ?? 0) >= 4.5m) reasons.Add("Đánh giá tốt từ sinh viên");
+        var quality = CalculateMentorQuality(mentor);
+        var ratingScore = Math.Min(12m, quality.AverageRating / 5m * 12m);
+        if (quality.AverageRating >= 4.5m) reasons.Add("Đánh giá tốt từ sinh viên");
 
-        var reputationScore = Math.Min(12m, (mentor.DiemUyTin ?? 0) / 10m * 12m);
-        if ((mentor.DiemUyTin ?? 0) >= 8m) reasons.Add("Điểm uy tín cao");
+        var reputationScore = Math.Min(12m, quality.Reputation / 10m * 12m);
+        if (quality.Reputation >= 8m) reasons.Add("Điểm uy tín cao");
 
         var completedSessions = mentor.GhepNoiHocTaps
             .SelectMany(g => g.LichHocs)
             .Count(l => l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
-        var experienceScore = Math.Min(7m, completedSessions * 0.35m + (mentor.SoLuotDanhGia ?? 0) * 0.04m);
+        var experienceScore = Math.Min(7m, completedSessions * 0.35m + quality.ReviewCount * 0.04m);
         if (completedSessions > 0) reasons.Add("Có lịch sử hỗ trợ học tập");
 
         var clbBonus = mentor.MaTaiKhoanNavigation.SinhVien?.ThanhVienClbs.Any() == true ? 3m : 0m;
@@ -717,6 +770,25 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         }));
     }
 
+    private static List<(DateTime NgayHoc, TimeSpan GioBatDau, TimeSpan GioKetThuc)> ParseSelectedSlots(IEnumerable<string>? values)
+    {
+        var result = new List<(DateTime NgayHoc, TimeSpan GioBatDau, TimeSpan GioKetThuc)>();
+        if (values == null) return result;
+
+        foreach (var value in values.Where(v => !string.IsNullOrWhiteSpace(v)).Distinct())
+        {
+            var parts = value.Split('|');
+            if (parts.Length != 3) continue;
+            if (!DateTime.TryParse(parts[0], out var ngayHoc)) continue;
+            if (!TimeSpan.TryParse(parts[1], out var gioBatDau)) continue;
+            if (!TimeSpan.TryParse(parts[2], out var gioKetThuc)) continue;
+
+            result.Add((ngayHoc.Date, gioBatDau, gioKetThuc));
+        }
+
+        return result;
+    }
+
     private static int ToStudyDay(DateTime date)
     {
         return date.DayOfWeek == DayOfWeek.Sunday ? 8 : (int)date.DayOfWeek + 1;
@@ -760,6 +832,42 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
     };
 
     private sealed record MentorFitScore(decimal Total, int ActiveLoad, List<string> Reasons);
+
+    private static MentorQualityMetrics CalculateMentorQuality(NguoiHuongDan mentor)
+    {
+        var ratings = mentor.DanhGiaHuongDans
+            .Where(d => d.SoSao.HasValue)
+            .Select(d => d.SoSao!.Value)
+            .ToList();
+
+        if (ratings.Count == 0)
+        {
+            ratings = mentor.GhepNoiHocTaps
+                .SelectMany(g => g.DanhGiaHuongDans)
+                .Where(d => d.SoSao.HasValue)
+                .Select(d => d.SoSao!.Value)
+                .ToList();
+        }
+
+        var reviewCount = ratings.Count;
+        var averageRating = reviewCount == 0 ? 0m : Math.Round((decimal)ratings.Average(), 2);
+        var completedSessions = mentor.GhepNoiHocTaps
+            .SelectMany(g => g.LichHocs)
+            .Count(l => l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
+        var reportCount = mentor.GhepNoiHocTaps
+            .SelectMany(g => g.LichHocs)
+            .Count(l => l.BaoCaoBuoiHoc != null);
+
+        var ratingScore = reviewCount == 0 ? 0m : averageRating / 5m * 6m;
+        var sessionScore = Math.Min(completedSessions, 30) / 30m * 2m;
+        var reportScore = completedSessions == 0 ? 0m : Math.Min(reportCount, completedSessions) / (decimal)completedSessions;
+        var reviewVolumeScore = Math.Min(reviewCount, 20) / 20m;
+        var reputation = Math.Round(Math.Clamp(ratingScore + sessionScore + reportScore + reviewVolumeScore, 0m, 10m), 2);
+
+        return new MentorQualityMetrics(reputation, averageRating, reviewCount);
+    }
+
+    private sealed record MentorQualityMetrics(decimal Reputation, decimal AverageRating, int ReviewCount);
 
     private static string FormatDay(int day)
     {

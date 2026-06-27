@@ -560,3 +560,54 @@
     min-height: 210px;
   }
 }
+
+/* Modern account refresh */
+.account-shell {
+  background:
+    linear-gradient(145deg, #f7fbff 0%, #eef6ff 48%, #f8fbff 100%);
+}
+
+.account-grid {
+  border-color: rgba(199, 216, 238, .9);
+  border-radius: 24px;
+  box-shadow: 0 32px 90px rgba(19, 66, 135, .16);
+}
+
+.account-visual-panel,
+.register-benefits {
+  background:
+    linear-gradient(150deg, rgba(255,255,255,.92) 0%, rgba(235,245,255,.96) 100%);
+}
+
+.account-form-panel {
+  background: rgba(255,255,255,.98);
+}
+
+.account-input,
+.social-button,
+.benefit-summary,
+.benefit-list div {
+  border-color: #d7e5f5;
+  box-shadow: 0 10px 26px rgba(23, 70, 130, .06);
+}
+
+.account-input:hover,
+.social-button:hover {
+  border-color: rgba(7, 87, 230, .32);
+  transform: translateY(-1px);
+}
+
+.account-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 38px rgba(7, 87, 230, .24);
+}
+
+.visual-points span {
+  border-color: #d4e4f8;
+  box-shadow: 0 8px 18px rgba(23, 70, 130, .06);
+}
+
+.students-photo-wrap img,
+.register-benefits img {
+  transform: translateZ(0);
+}

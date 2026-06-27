@@ -6,6 +6,7 @@
     var mentors = ViewBag.MentorSuggestions as List<NguoiHuongDan> ?? [];
     var clbActivities = ViewBag.ClbActivities as List<HoatDongClb> ?? [];
     var notifications = ViewBag.Notifications as List<StudyConnect.ViewModels.DashboardNotificationViewModel> ?? [];
+    var unreadNotificationCount = ViewBag.UnreadNotificationCount as int? ?? 0;
     var mentorApplication = ViewBag.MentorApplication as DangKyHuongDan;
     var skills = (sinhVien?.KyNang ?? string.Empty)
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -37,6 +38,7 @@
             <a asp-controller="SinhVien" asp-action="HoSo"><span class="student-nav-icon profile"></span><span>Hồ sơ cá nhân</span></a>
             <a asp-controller="SinhVien" asp-action="HoSo"><span class="student-nav-icon skill"></span><span>Kỹ năng & chuyên môn</span></a>
             <a asp-controller="SinhVien" asp-action="HoSo"><span class="student-nav-icon clock"></span><span>Lịch rảnh</span></a>
+            <a asp-controller="SinhVien" asp-action="HoSo" asp-fragment="lich-su-hoc"><span class="student-nav-icon calendar"></span><span>Lịch sử học</span></a>
             <a asp-controller="DangKyHuongDans" asp-action="Create"><span class="student-nav-icon mentor"></span><span>Đăng ký làm mentor</span></a>
             <a asp-controller="TaiKhoans" asp-action="Profile"><span class="student-nav-icon settings"></span><span>Cài đặt</span></a>
         </nav>
@@ -56,7 +58,44 @@
             </div>
             <div class="student-top-actions">
                 <label class="student-search"><span class="student-search-icon"></span><input type="search" placeholder="Tìm kiếm..." /></label>
-                <span class="student-bell"><i></i><b>3</b></span>
+                <details class="student-notification-menu">
+                    <summary class="student-bell" aria-label="Thông báo">
+                        <i></i>
+                        @if (unreadNotificationCount > 0)
+                        {
+                            <b>@unreadNotificationCount</b>
+                        }
+                    </summary>
+                    <div class="student-notification-popover">
+                        <div class="student-notification-head">
+                            <strong>Thông báo</strong>
+                            @if (unreadNotificationCount > 0)
+                            {
+                                <form asp-controller="SinhVien" asp-action="MarkNotificationsRead" method="post">
+                                    <button type="submit">Đánh dấu đã đọc</button>
+                                </form>
+                            }
+                        </div>
+                        @if (notifications.Count == 0)
+                        {
+                            <article><strong>Chưa có thông báo</strong><p>Lịch học và trạng thái mentor sẽ hiển thị tại đây.</p></article>
+                        }
+                        else
+                        {
+                            @foreach (var item in notifications.Take(5))
+                            {
+                                <article class="@item.Tone">
+                                    <strong>@item.Title</strong>
+                                    <p>@item.Message</p>
+                                    @if (!string.IsNullOrWhiteSpace(item.Url))
+                                    {
+                                        <a href="@item.Url">Xem</a>
+                                    }
+                                </article>
+                            }
+                        }
+                    </div>
+                </details>
                 <div class="student-user-chip">
                     <span>@ViewBag.UserName.Substring(0, 1).ToUpper()</span>
                     <div><strong>@ViewBag.UserName</strong><small>Sinh viên</small></div>

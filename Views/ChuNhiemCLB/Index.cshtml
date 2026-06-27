@@ -1,5 +1,8 @@
+@model StudyConnect.ViewModels.ChuNhiemClbDashboardViewModel
 @{
     ViewData["Title"] = "Dashboard Chủ nhiệm CLB";
+    var now = DateTime.Now;
+    string DateInput(DateTime value) => value.ToString("yyyy-MM-ddTHH:mm");
 }
 
 <main class="role-dashboard">
@@ -8,8 +11,10 @@
         <p>Chủ nhiệm CLB</p>
         <a class="active" href="#tong-quan">Tổng quan</a>
         <a href="#quan-ly-clb">Quản lý CLB</a>
-        <a href="#bau-cu">Bầu Phó chủ nhiệm</a>
-        <a href="#xac-nhan-mentor">Xác nhận mentor CLB</a>
+        <a href="#hoat-dong-clb">Hoạt động</a>
+        <a href="#thanh-vien-clb">Thành viên</a>
+        <a href="#tai-lieu-clb">Tài liệu</a>
+        <a href="#bau-cu">Bầu cử</a>
         <a asp-controller="TaiKhoans" asp-action="Profile">Hồ sơ cá nhân</a>
     </aside>
 
@@ -18,43 +23,355 @@
             <div>
                 <p class="eyebrow">Đúng vai trò: Chủ nhiệm CLB</p>
                 <h1>Quản lý cộng đồng CLB</h1>
-                <span>Điều phối thành viên, hoạt động, tài liệu, xác nhận uy tín CLB và tổ chức bầu Phó chủ nhiệm.</span>
+                <span>Điều phối thông tin CLB, thành viên, hoạt động, tài liệu và bầu Phó chủ nhiệm bằng dữ liệu thật.</span>
             </div>
             <form asp-controller="TaiKhoans" asp-action="Logout" method="post"><button class="btn btn-outline">Đăng xuất</button></form>
         </header>
 
+        @if (TempData["Success"] is string success)
+        {
+            <div class="alert success">@success</div>
+        }
+        @if (TempData["SuccessMessage"] is string successMessage)
+        {
+            <div class="alert success">@successMessage</div>
+        }
+        @if (TempData["Error"] is string error)
+        {
+            <div class="alert error">@error</div>
+        }
+
         <section class="role-stats" id="tong-quan">
-            <article><small>CLB phụ trách</small><strong>@ViewBag.CauLacBo</strong></article>
-            <article><small>Thành viên</small><strong>@ViewBag.ThanhVien</strong></article>
-            <article><small>Hoạt động</small><strong>@ViewBag.HoatDong</strong></article>
-            <article><small>Tài liệu CLB</small><strong>@ViewBag.TaiLieu</strong></article>
-            <article><small>Đợt bầu cử</small><strong>@ViewBag.DotBauCu</strong></article>
+            <article><small>CLB phụ trách</small><strong>@Model.Clubs.Count</strong><span>Đang quản lý</span></article>
+            <article><small>Thành viên</small><strong>@Model.MemberCount</strong><span>Đang hoạt động</span></article>
+            <article><small>Hoạt động</small><strong>@Model.Activities.Count</strong><span>Gần đây</span></article>
+            <article><small>Tài liệu CLB</small><strong>@Model.Documents.Count</strong><span>Đã chia sẻ</span></article>
+            <article><small>Đợt bầu cử</small><strong>@Model.Elections.Count</strong><span>Theo CLB</span></article>
         </section>
 
         <section class="role-panel" id="quan-ly-clb">
-            <div class="role-panel-head"><h2>Chức năng quản lý CLB</h2><a asp-controller="Home" asp-action="CauLacBo">Mở trang CLB</a></div>
-            <div class="role-feature-grid">
-                <article><span>01</span><h3>Quản lý thông tin CLB</h3><p>Cập nhật mô tả, trạng thái, hoạt động và thông tin hiển thị cộng đồng.</p></article>
-                <article><span>02</span><h3>Duyệt yêu cầu tham gia</h3><p>Kiểm tra thành viên, vai trò nội bộ và trạng thái tham gia CLB.</p></article>
-                <article><span>03</span><h3>Đăng hoạt động</h3><p>Tạo workshop, sự kiện, lịch sinh hoạt hoặc thông báo tuyển thành viên.</p></article>
-                <article><span>04</span><h3>Đăng tài liệu CLB</h3><p>Chia sẻ tài liệu chung phục vụ học tập và hoạt động cộng đồng.</p></article>
+            <div class="role-panel-head">
+                <div><p class="eyebrow">Cấu hình cộng đồng</p><h2>Quản lý thông tin CLB</h2></div>
+                <a asp-controller="Home" asp-action="CauLacBo">Xem trang cộng đồng</a>
+            </div>
+            @if (!Model.Clubs.Any())
+            {
+                <p class="empty-text">Tài khoản Chủ nhiệm chưa được gắn với CLB nào.</p>
+            }
+            <div class="manager-form-grid">
+                @foreach (var club in Model.Clubs)
+                {
+                    <form asp-action="UpdateClub" method="post" class="manager-card-form">
+                        <input type="hidden" name="clbId" value="@club.MaClb" />
+                        <label><span>Tên CLB</span><input name="tenClb" value="@club.TenClb" maxlength="150" required /></label>
+                        <label><span>Trạng thái</span>
+                            <select name="trangThai">
+                                <option selected="@(club.TrangThai == "Hoạt động")">Hoạt động</option>
+                                <option selected="@(club.TrangThai == "Tạm dừng")">Tạm dừng</option>
+                                <option selected="@(club.TrangThai == "Ẩn")">Ẩn</option>
+                            </select>
+                        </label>
+                        <label class="wide"><span>Mô tả</span><textarea name="moTa" rows="3">@club.MoTa</textarea></label>
+                        <button type="submit">Lưu thông tin</button>
+                    </form>
+                }
+            </div>
+        </section>
+
+        <section class="role-panel" id="hoat-dong-clb">
+            <div class="role-panel-head">
+                <div><p class="eyebrow">Thông báo & sự kiện</p><h2>Đăng hoạt động CLB</h2></div>
+                <strong>@Model.Activities.Count hoạt động gần đây</strong>
+            </div>
+            @if (Model.Clubs.Any())
+            {
+                <form asp-action="CreateActivity" method="post" class="manager-action-form">
+                    <label><span>CLB</span>
+                        <select name="clbId" required>
+                            @foreach (var club in Model.Clubs)
+                            {
+                                <option value="@club.MaClb">@club.TenClb</option>
+                            }
+                        </select>
+                    </label>
+                    <label><span>Tiêu đề</span><input name="tieuDe" maxlength="200" required placeholder="VD: Workshop Git cơ bản" /></label>
+                    <label><span>Thời gian</span><input name="thoiGian" type="datetime-local" value="@DateInput(now.AddDays(3))" /></label>
+                    <label><span>Địa điểm</span><input name="diaDiem" maxlength="200" placeholder="VD: Phòng B204 / Google Meet" /></label>
+                    <label class="wide"><span>Nội dung</span><textarea name="noiDung" rows="3" placeholder="Mô tả hoạt động, đối tượng tham gia, yêu cầu chuẩn bị..."></textarea></label>
+                    <button type="submit">Đăng hoạt động</button>
+                </form>
+            }
+            <div class="manager-document-list manager-activity-list">
+                @if (!Model.Activities.Any())
+                {
+                    <p class="empty-text">Chưa có hoạt động nào trong các CLB bạn phụ trách.</p>
+                }
+                @foreach (var activity in Model.Activities)
+                {
+                    <article>
+                        <span>HD</span>
+                        <div>
+                            <h3>@activity.TieuDe</h3>
+                            <p>@(activity.NoiDung ?? "Hoạt động CLB")</p>
+                            <small>@activity.MaClbNavigation.TenClb • @(activity.ThoiGian?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa đặt thời gian") • @(activity.DiaDiem ?? "Chưa có địa điểm")</small>
+                        </div>
+                        <form asp-action="DeleteActivity" method="post">
+                            <input type="hidden" name="id" value="@activity.MaHoatDong" />
+                            <button class="btn btn-light" type="submit">Xóa</button>
+                        </form>
+                    </article>
+                }
+            </div>
+        </section>
+
+        <section class="role-panel" id="thanh-vien-clb">
+            <div class="role-panel-head">
+                <div><p class="eyebrow">Nhân sự CLB</p><h2>Quản lý thành viên</h2></div>
+                <strong>@Model.Members.Count thành viên hiển thị</strong>
+            </div>
+            @if (Model.Clubs.Any())
+            {
+                <form asp-action="AddMember" method="post" class="manager-action-form">
+                    <label><span>CLB</span>
+                        <select name="clbId" required>
+                            @foreach (var club in Model.Clubs)
+                            {
+                                <option value="@club.MaClb">@club.TenClb</option>
+                            }
+                        </select>
+                    </label>
+                    <label><span>MSSV hoặc email</span><input name="sinhVienIdentifier" required placeholder="VD: SV001 hoặc email sinh viên" /></label>
+                    <label><span>Vai trò</span>
+                        <select name="vaiTroClb">
+                            <option>Thành viên</option>
+                            <option>Phó chủ nhiệm</option>
+                            <option>Chủ nhiệm</option>
+                        </select>
+                    </label>
+                    <button type="submit">Thêm thành viên</button>
+                </form>
+            }
+            <div class="manager-member-list">
+                @if (!Model.Members.Any())
+                {
+                    <p class="empty-text">Chưa có thành viên nào trong CLB bạn phụ trách.</p>
+                }
+                @foreach (var member in Model.Members)
+                {
+                    <form asp-action="UpdateMember" method="post" class="manager-member-row">
+                        <input type="hidden" name="memberId" value="@member.MaThanhVien" />
+                        <div>
+                            <strong>@member.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen</strong>
+                            <small>@member.MaClbNavigation.TenClb • @(member.NgayThamGia?.ToString("dd/MM/yyyy") ?? "Chưa rõ ngày tham gia")</small>
+                        </div>
+                        <select name="vaiTroClb">
+                            <option selected="@(member.VaiTroClb == "Thành viên")">Thành viên</option>
+                            <option selected="@(member.VaiTroClb == "Phó chủ nhiệm")">Phó chủ nhiệm</option>
+                            <option selected="@(member.VaiTroClb == "Chủ nhiệm")">Chủ nhiệm</option>
+                        </select>
+                        <select name="trangThai">
+                            <option selected="@(member.TrangThai == "Hoạt động")">Hoạt động</option>
+                            <option selected="@(member.TrangThai == "Đã khóa")">Đã khóa</option>
+                            <option selected="@(member.TrangThai == "Đã rời")">Đã rời</option>
+                        </select>
+                        <button type="submit">Lưu</button>
+                    </form>
+                }
+            </div>
+        </section>
+
+        <section class="role-panel" id="tai-lieu-clb">
+            <div class="role-panel-head"><div><p class="eyebrow">Kho học liệu</p><h2>Đăng tài liệu CLB</h2></div><strong>@Model.Documents.Count tài liệu gần đây</strong></div>
+            @if (!Model.Clubs.Any())
+            {
+                <p class="empty-text">Tài khoản Chủ nhiệm chưa được gắn với CLB nào. Hãy thêm tài khoản này vào thành viên CLB trước.</p>
+            }
+            else
+            {
+                <form asp-controller="Clb" asp-action="UploadDocument" method="post" enctype="multipart/form-data" class="club-upload-form manager-upload-form">
+                    <input type="hidden" name="returnTo" value="ChuNhiem" />
+                    <div>
+                        <label>CLB</label>
+                        <select name="clbId" required>
+                            @foreach (var club in Model.Clubs)
+                            {
+                                <option value="@club.MaClb">@club.TenClb</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label>Tên tài liệu</label>
+                        <input name="tieuDe" maxlength="200" placeholder="Tên tài liệu hiển thị" required />
+                    </div>
+                    <div>
+                        <label>Tệp tài liệu</label>
+                        <input name="tepTaiLieu" type="file" required />
+                    </div>
+                    <div class="club-upload-wide">
+                        <label>Mô tả</label>
+                        <textarea name="moTa" rows="2" placeholder="Mô tả ngắn về nội dung tài liệu"></textarea>
+                    </div>
+                    <button type="submit">Đăng tài liệu</button>
+                </form>
+            }
+
+            <div class="manager-document-list">
+                @if (!Model.Documents.Any())
+                {
+                    <p class="empty-text">Chưa có tài liệu nào trong các CLB bạn phụ trách.</p>
+                }
+                @foreach (var document in Model.Documents)
+                {
+                    <article>
+                        <span>TL</span>
+                        <div>
+                            <h3>@document.TieuDe</h3>
+                            <p>@(document.MoTa ?? "Tài liệu CLB")</p>
+                            <small>@document.MaClbNavigation.TenClb • @(document.NguoiDangNavigation?.HoTen ?? "Chủ nhiệm CLB") • @(document.NgayDang?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa rõ ngày")</small>
+                        </div>
+                        <div class="club-document-actions">
+                            <a class="btn btn-outline" asp-controller="Clb" asp-action="ViewDocument" asp-route-id="@document.MaTaiLieu">Mở</a>
+                            <form asp-controller="Clb" asp-action="DeleteDocument" method="post">
+                                <input type="hidden" name="id" value="@document.MaTaiLieu" />
+                                <input type="hidden" name="returnTo" value="ChuNhiem" />
+                                <button type="submit" class="btn btn-light">Xóa</button>
+                            </form>
+                        </div>
+                    </article>
+                }
             </div>
         </section>
 
         <section class="role-panel" id="bau-cu">
-            <div class="role-panel-head"><h2>Bầu Phó chủ nhiệm CLB</h2></div>
-            <div class="role-feature-grid compact">
-                <article><span>DC</span><h3>Tạo đợt đề cử</h3><p>Thiết lập thời gian bắt đầu/kết thúc cho đề cử và bỏ phiếu.</p></article>
-                <article><span>UV</span><h3>Theo dõi ứng viên</h3><p>Hệ thống chỉ nhận ứng viên/thành viên đề cử hợp lệ trong CLB.</p></article>
-                <article><span>KQ</span><h3>Cập nhật kết quả</h3><p>Sau khi hệ thống tổng hợp phiếu, Chủ nhiệm cập nhật vai trò Phó chủ nhiệm.</p></article>
+            <div class="role-panel-head">
+                <div><p class="eyebrow">Bầu Phó chủ nhiệm</p><h2>Tổ chức bầu cử CLB</h2></div>
+                <a asp-controller="Home" asp-action="CauLacBo" asp-fragment="bau-cu">Xem trang bỏ phiếu</a>
+            </div>
+            @if (Model.Clubs.Any())
+            {
+                <form asp-action="CreateElection" method="post" class="manager-action-form">
+                    <label><span>CLB</span>
+                        <select name="clbId" required>
+                            @foreach (var club in Model.Clubs)
+                            {
+                                <option value="@club.MaClb">@club.TenClb</option>
+                            }
+                        </select>
+                    </label>
+                    <label><span>Tên đợt</span><input name="tenDot" maxlength="200" required value="Bầu Phó chủ nhiệm CLB" /></label>
+                    <label><span>Bắt đầu</span><input name="thoiGianBatDau" type="datetime-local" value="@DateInput(now)" required /></label>
+                    <label><span>Kết thúc</span><input name="thoiGianKetThuc" type="datetime-local" value="@DateInput(now.AddDays(7))" required /></label>
+                    <button type="submit">Tạo đợt bầu</button>
+                </form>
+            }
+
+            <div class="manager-election-list">
+                @if (!Model.Elections.Any())
+                {
+                    <p class="empty-text">Chưa có đợt bầu cử nào.</p>
+                }
+                @foreach (var election in Model.Elections)
+                {
+                    var candidates = election.UngVienPhoChuNhiems.OrderByDescending(u => Model.CandidateVoteCounts.GetValueOrDefault(u.MaUngVien)).ToList();
+                    var candidateStudentIds = candidates.Select(c => c.MaSinhVien).ToHashSet();
+                    var availableMembers = Model.Members
+                        .Where(m => m.MaClb == election.MaClb && !candidateStudentIds.Contains(m.MaSinhVien))
+                        .OrderBy(m => m.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen)
+                        .ToList();
+                    var totalVotes = election.PhieuBauPhoChuNhiems.Count;
+                    <article class="manager-election-card">
+                        <div class="manager-election-head">
+                            <div>
+                                <strong>@election.TenDot</strong>
+                                <small>@candidates.Count ứng viên • @totalVotes phiếu bầu</small>
+                                <small>@election.MaClbNavigation.TenClb • @election.ThoiGianBatDau.ToString("dd/MM/yyyy HH:mm") - @election.ThoiGianKetThuc.ToString("dd/MM/yyyy HH:mm") • @(election.TrangThai ?? "Đang cập nhật")</small>
+                            </div>
+                            <div class="club-document-actions">
+                                <form asp-action="CloseElection" method="post">
+                                    <input type="hidden" name="id" value="@election.MaDot" />
+                                    <button class="btn btn-light" type="submit">Kết thúc</button>
+                                </form>
+                                <form asp-action="PromoteWinner" method="post">
+                                    <input type="hidden" name="electionId" value="@election.MaDot" />
+                                    <button class="btn btn-primary" type="submit">Công nhận người thắng</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        @if (availableMembers.Any())
+                        {
+                            <form asp-action="AddElectionCandidate" method="post" class="manager-election-add-candidate">
+                                <input type="hidden" name="electionId" value="@election.MaDot" />
+                                <label>
+                                    <span>Thêm ứng viên</span>
+                                    <select name="sinhVienId" required>
+                                        @foreach (var member in availableMembers)
+                                        {
+                                            <option value="@member.MaSinhVien">@member.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen</option>
+                                        }
+                                    </select>
+                                </label>
+                                <label>
+                                    <span>Lý do đề cử</span>
+                                    <input name="lyDo" maxlength="500" placeholder="VD: Tích cực tham gia hoạt động CLB" />
+                                </label>
+                                <button type="submit">Thêm ứng viên</button>
+                            </form>
+                        }
+
+                        @if (!candidates.Any())
+                        {
+                            <p class="empty-text">Chưa có ứng viên. Thành viên có thể tự ứng cử hoặc đề cử trên trang Cộng đồng CLB.</p>
+                        }
+                        else
+                        {
+                            <div class="manager-candidate-list">
+                                @foreach (var candidate in candidates)
+                                {
+                                    var votes = Model.CandidateVoteCounts.GetValueOrDefault(candidate.MaUngVien);
+                                    var votePercent = totalVotes == 0 ? 0 : (int)Math.Round(votes * 100m / totalVotes);
+                                    <form asp-action="UpdateCandidateStatus" method="post">
+                                        <input type="hidden" name="id" value="@candidate.MaUngVien" />
+                                        <div>
+                                            <strong>@candidate.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen</strong>
+                                            <small>@votePercent% tổng phiếu • Trạng thái: @(candidate.TrangThai ?? "Chờ xác nhận")</small>
+                                            <small>Đề cử bởi @(candidate.NguoiDeCuNavigation?.MaTaiKhoanNavigation.HoTen ?? "Chủ nhiệm CLB")</small>
+                                            <div class="manager-vote-bar"><span style="width:@votePercent%"></span></div>
+                                            <small>@votes phiếu • @(candidate.LyDoDeCu ?? "Ứng viên Phó chủ nhiệm")</small>
+                                        </div>
+                                        <select name="trangThai">
+                                            <option selected="@(candidate.TrangThai == "Hợp lệ")">Hợp lệ</option>
+                                            <option selected="@(candidate.TrangThai == "Không hợp lệ")">Không hợp lệ</option>
+                                        </select>
+                                        <button type="submit">Cập nhật</button>
+                                    </form>
+                                }
+                            </div>
+                        }
+                    </article>
+                }
             </div>
         </section>
 
-        <section class="role-panel" id="xac-nhan-mentor">
-            <div class="role-panel-head"><h2>Xác nhận sinh viên CLB đăng ký mentor</h2><strong>@ViewBag.CanXacNhanMentor hồ sơ chờ</strong></div>
-            <div class="role-note-list">
-                <p>Chủ nhiệm CLB chỉ xác nhận mức độ tham gia, uy tín và đóng góp trong CLB. Bước duyệt chuyên môn vẫn thuộc Giảng viên/Cố vấn.</p>
-            </div>
-        </section>
+        @if (Model.PendingMentorApplications.Any())
+        {
+            <section class="role-panel" id="xac-nhan-mentor">
+                <div class="role-panel-head"><div><p class="eyebrow">Uy tín CLB</p><h2>Hồ sơ mentor cần xác nhận</h2></div><strong>@Model.PendingMentorConfirmations hồ sơ</strong></div>
+                <div class="manager-document-list">
+                    @foreach (var application in Model.PendingMentorApplications)
+                    {
+                        <article>
+                            <span>MT</span>
+                            <div>
+                                <h3>@application.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen</h3>
+                                <p>@application.MaLinhVucNavigation.TenLinhVuc</p>
+                                <small>@application.NgayDangKy?.ToString("dd/MM/yyyy HH:mm") • @application.TrangThaiClb</small>
+                            </div>
+                            <a class="btn btn-primary" asp-action="DangKyMentorDetails" asp-route-id="@application.MaDangKy">Xem chi tiết</a>
+                        </article>
+                    }
+                </div>
+            </section>
+        }
     </section>
 </main>

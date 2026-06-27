@@ -21,6 +21,10 @@
         {
             <div class="flow-alert success">@success</div>
         }
+        @if (TempData["ErrorMessage"] is string error)
+        {
+            <div class="flow-alert error">@error</div>
+        }
 
         <header class="flow-title">
             <div>
@@ -42,7 +46,21 @@
                 <dl class="detail-list">
                     <dt>Sinh viên</dt><dd>@account.HoTen - @account.Email</dd>
                     <dt>Điểm môn</dt><dd>@(Model.DiemMon?.ToString("0.0") ?? "Chưa nhập")</dd>
-                    <dt>Minh chứng</dt><dd>@(string.IsNullOrWhiteSpace(Model.MinhChung) ? "Chưa nhập" : Model.MinhChung)</dd>
+                    <dt>Minh chứng</dt>
+                    <dd>
+                        @if (string.IsNullOrWhiteSpace(Model.MinhChung))
+                        {
+                            <span>Chưa nhập</span>
+                        }
+                        else if (Model.MinhChung.StartsWith("/uploads/"))
+                        {
+                            <a class="btn btn-light" href="@Model.MinhChung" target="_blank" rel="noopener">Mở minh chứng</a>
+                        }
+                        else
+                        {
+                            <span>@Model.MinhChung</span>
+                        }
+                    </dd>
                     <dt>Ngày gửi</dt><dd>@Model.NgayDangKy?.ToString("dd/MM/yyyy HH:mm")</dd>
                 </dl>
                 <pre class="problem-box">@Model.LyDo</pre>

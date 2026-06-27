@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using StudyConnect.Data;
@@ -9,11 +10,20 @@ namespace StudyConnect.Controllers;
 
 public class DangKyHuongDansController : RoleProtectedController
 {
-    private readonly AppDbContext _context;
+    private static readonly HashSet<string> AllowedEvidenceExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx", ".png", ".jpg", ".jpeg", ".zip", ".rar"
+    };
 
-    public DangKyHuongDansController(AppDbContext context)
+    private const long MaxEvidenceSize = 10 * 1024 * 1024;
+
+    private readonly AppDbContext _context;
+    private readonly IWebHostEnvironment _environment;
+
+    public DangKyHuongDansController(AppDbContext context, IWebHostEnvironment environment)
     {
         _context = context;
+        _environment = environment;
     }
 
     public async Task<IActionResult> Create()
@@ -31,7 +41,7 @@ public class DangKyHuongDansController : RoleProtectedController
         var latest = await LatestApplicationAsync(sinhVien.MaSinhVien);
         var model = new MentorApplicationViewModel
         {
-            TrangThaiHienTai = latest == null ? null : latest.TrangThaiDuyet ?? latest.TrangThaiCoVan,
+            TrangThaiHienTai = latest?.TrangThaiDuyet ?? latest?.TrangThaiCoVan,
             LichRanhDaChon = await CurrentAvailabilityValuesAsync()
         };
 
@@ -40,6 +50,7 @@ public class DangKyHuongDansController : RoleProtectedController
             model.MaLinhVuc = latest.MaLinhVuc;
             model.DiemMon = latest.DiemMon;
             model.MinhChung = latest.MinhChung;
+            model.BangChungDaTai = latest.MinhChung;
             model.LyDo = latest.LyDo ?? string.Empty;
         }
 
@@ -49,6 +60,7 @@ public class DangKyHuongDansController : RoleProtectedController
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequestSizeLimit(MaxEvidenceSize)]
     public async Task<IActionResult> Create(MentorApplicationViewModel model)
     {
         var guard = RequireRoles(AccountRoles.SinhVien);
@@ -69,6 +81,24 @@ public class DangKyHuongDansController : RoleProtectedController
         if (!await _context.LinhVucHocTaps.AnyAsync(l => l.MaLinhVuc == model.MaLinhVuc))
         {
             ModelState.AddModelError(nameof(model.MaLinhVuc), "Lĩnh vực học tập không hợp lệ.");
+        }
+
+        if (model.BangChungFile == null && string.IsNullOrWhiteSpace(model.MinhChung))
+        {
+            ModelState.AddModelError(nameof(model.BangChungFile), "Vui lòng tải lên hoặc nhập link minh chứng trình độ chuyên môn/kỹ năng.");
+        }
+
+        if (model.BangChungFile is { Length: > 0 })
+        {
+            var extension = Path.GetExtension(model.BangChungFile.FileName);
+            if (model.BangChungFile.Length > MaxEvidenceSize)
+            {
+                ModelState.AddModelError(nameof(model.BangChungFile), "Tệp minh chứng không được vượt quá 10MB.");
+            }
+            else if (string.IsNullOrWhiteSpace(extension) || !AllowedEvidenceExtensions.Contains(extension))
+            {
+                ModelState.AddModelError(nameof(model.BangChungFile), "Định dạng minh chứng chưa được hỗ trợ.");
+            }
         }
 
         if (!ModelState.IsValid)
@@ -92,9 +122,11 @@ public class DangKyHuongDansController : RoleProtectedController
             _context.DangKyHuongDans.Add(pending);
         }
 
+        var evidence = await SaveEvidenceAsync(model);
+
         pending.MaLinhVuc = model.MaLinhVuc;
         pending.DiemMon = model.DiemMon;
-        pending.MinhChung = string.IsNullOrWhiteSpace(model.MinhChung) ? null : model.MinhChung.Trim();
+        pending.MinhChung = evidence;
         pending.LyDo = model.LyDo.Trim();
         pending.TrangThaiClb = "Không yêu cầu";
         pending.TrangThaiCoVan = "Chờ duyệt";
@@ -104,8 +136,29 @@ public class DangKyHuongDansController : RoleProtectedController
         await ReplaceAvailabilityAsync(CurrentUserId!.Value, model.LichRanhDaChon);
         await _context.SaveChangesAsync();
 
-        TempData["SuccessMessage"] = "Đã gửi đăng ký làm mentor tới cố vấn. Bạn sẽ thấy kết quả sau khi cố vấn duyệt hoặc từ chối.";
+        TempData["SuccessMessage"] = "Đã gửi đăng ký làm mentor tới cố vấn. Cố vấn sẽ xem minh chứng chuyên môn/kỹ năng và duyệt kết quả.";
         return RedirectToAction("Index", "SinhVien");
+    }
+
+    private async Task<string?> SaveEvidenceAsync(MentorApplicationViewModel model)
+    {
+        if (model.BangChungFile == null || model.BangChungFile.Length == 0)
+        {
+            return string.IsNullOrWhiteSpace(model.MinhChung) ? null : TrimToMax(model.MinhChung.Trim(), 255);
+        }
+
+        var extension = Path.GetExtension(model.BangChungFile.FileName).ToLowerInvariant();
+        var uploadRoot = Path.Combine(_environment.WebRootPath, "uploads", "mentor-evidence");
+        Directory.CreateDirectory(uploadRoot);
+
+        var storedName = $"mentor-{CurrentUserId}-{DateTime.Now:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}{extension}";
+        var storedPath = Path.Combine(uploadRoot, storedName);
+        await using (var stream = System.IO.File.Create(storedPath))
+        {
+            await model.BangChungFile.CopyToAsync(stream);
+        }
+
+        return $"/uploads/mentor-evidence/{storedName}";
     }
 
     private async Task<SinhVien?> CurrentSinhVienAsync()
@@ -117,6 +170,7 @@ public class DangKyHuongDansController : RoleProtectedController
     private async Task<DangKyHuongDan?> LatestApplicationAsync(int sinhVienId)
     {
         return await _context.DangKyHuongDans
+            .Include(d => d.MaLinhVucNavigation)
             .Where(d => d.MaSinhVien == sinhVienId)
             .OrderByDescending(d => d.NgayDangKy)
             .FirstOrDefaultAsync();
@@ -165,6 +219,11 @@ public class DangKyHuongDansController : RoleProtectedController
         return !string.IsNullOrWhiteSpace(sinhVien.ChuyenNganh)
             && !string.IsNullOrWhiteSpace(sinhVien.KyNang)
             && !string.IsNullOrWhiteSpace(sinhVien.GioiThieu);
+    }
+
+    private static string TrimToMax(string value, int maxLength)
+    {
+        return value.Length <= maxLength ? value : value[..maxLength];
     }
 
     private static (int Thu, TimeOnly BatDau, TimeOnly KetThuc)? ParseSlot(string value)

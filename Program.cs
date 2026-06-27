@@ -33,6 +33,7 @@ if (app.Environment.IsDevelopment())
     try
     {
         await StudyConnectSeedData.EnsureSeededAsync(app.Services);
+        await StudyConnectClubSeedData.EnsureClubWorkflowSeededAsync(app.Services);
     }
     catch (Exception ex)
     {

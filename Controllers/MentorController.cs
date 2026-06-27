@@ -81,6 +81,7 @@ public class MentorController : RoleProtectedController
         var guard = RequireRoles(AccountRoles.Mentor);
         if (guard != null) return guard;
 
+        ViewBag.CurrentSlots = await CurrentAvailabilityListAsync();
         var model = new MentorAvailabilityViewModel
         {
             LichRanhDaChon = await CurrentAvailabilityValuesAsync()
@@ -95,16 +96,36 @@ public class MentorController : RoleProtectedController
         var guard = RequireRoles(AccountRoles.Mentor);
         if (guard != null) return guard;
 
-        if (model.LichRanhDaChon.Count == 0)
+        var selectedValues = model.LichRanhDaChon.ToList();
+        var customSlot = BuildCustomSlotValue(model);
+        if (customSlot.HasValue)
+        {
+            if (customSlot.Value.Value != null)
+            {
+                selectedValues.Add(customSlot.Value.Value);
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, customSlot.Value.ErrorMessage ?? "Khung giờ tùy chỉnh không hợp lệ.");
+            }
+        }
+
+        var normalizedSlots = NormalizeSlots(selectedValues);
+        if (normalizedSlots.Count == 0)
         {
             ModelState.AddModelError(nameof(model.LichRanhDaChon), "Vui lòng chọn ít nhất một khung lịch rảnh.");
         }
 
-        if (!ModelState.IsValid) return View(model);
+        if (!ModelState.IsValid)
+        {
+            ViewBag.CurrentSlots = await CurrentAvailabilityListAsync();
+            return View(model);
+        }
 
-        await ReplaceAvailabilityAsync(CurrentUserId!.Value, model.LichRanhDaChon);
+        await ReplaceAvailabilityAsync(CurrentUserId!.Value, normalizedSlots);
+        await NotifyStudentsAboutAvailabilityChangeAsync();
         await _context.SaveChangesAsync();
-        TempData["SuccessMessage"] = "Đã cập nhật lịch rảnh cá nhân của mentor.";
+        TempData["SuccessMessage"] = "Đã cập nhật lịch rảnh cá nhân của mentor. Hệ thống sẽ dùng lịch mới để gợi ý và kiểm tra khi sinh viên lên lịch.";
         return RedirectToAction(nameof(Index), null, null, "lich-ranh");
     }
 
@@ -246,14 +267,18 @@ public class MentorController : RoleProtectedController
 
     private async Task<List<string>> CurrentAvailabilityValuesAsync()
     {
+        var slots = await CurrentAvailabilityListAsync();
+        return slots.Select(l => $"{l.Thu}|{l.GioBatDau:HH\\:mm}|{l.GioKetThuc:HH\\:mm}").ToList();
+    }
+
+    private async Task<List<LichRanh>> CurrentAvailabilityListAsync()
+    {
         if (!CurrentUserId.HasValue) return [];
-        var slots = await _context.LichRanhs
+        return await _context.LichRanhs
             .Where(l => l.MaTaiKhoan == CurrentUserId.Value)
             .OrderBy(l => l.Thu)
             .ThenBy(l => l.GioBatDau)
             .ToListAsync();
-
-        return slots.Select(l => $"{l.Thu}|{l.GioBatDau:HH\\:mm}|{l.GioKetThuc:HH\\:mm}").ToList();
     }
 
     private async Task ReplaceAvailabilityAsync(int userId, List<string> values)
@@ -269,6 +294,34 @@ public class MentorController : RoleProtectedController
                 Thu = slot!.Value.Thu,
                 GioBatDau = slot.Value.BatDau,
                 GioKetThuc = slot.Value.KetThuc
+            });
+        }
+    }
+
+    private async Task NotifyStudentsAboutAvailabilityChangeAsync()
+    {
+        var mentor = await CurrentMentorAsync();
+        if (mentor == null) return;
+
+        var studentAccountIds = await _context.GhepNoiHocTaps
+            .Include(g => g.MaYeuCauNavigation)
+                .ThenInclude(y => y.MaSinhVienNavigation)
+            .Where(g => g.MaHuongDan == mentor.MaHuongDan)
+            .Where(g => g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch" || g.TrangThai == "Đề xuất")
+            .Select(g => g.MaYeuCauNavigation.MaSinhVienNavigation.MaTaiKhoan)
+            .Distinct()
+            .ToListAsync();
+
+        foreach (var accountId in studentAccountIds)
+        {
+            _context.ThongBaos.Add(new ThongBao
+            {
+                MaTaiKhoan = accountId,
+                TieuDe = "Mentor đã cập nhật lịch rảnh",
+                NoiDung = $"{CurrentUserName} vừa cập nhật lịch rảnh. Bạn có thể vào yêu cầu học 1-1 để chọn thời gian phù hợp.",
+                LoaiThongBao = "LichRanhMentor",
+                DaDoc = false,
+                NgayTao = DateTime.Now
             });
         }
     }
@@ -308,8 +361,78 @@ public class MentorController : RoleProtectedController
         var parts = value.Split('|');
         if (parts.Length != 3) return null;
         if (!int.TryParse(parts[0], out var thu)) return null;
+        if (thu < 2 || thu > 8) return null;
         if (!TimeOnly.TryParse(parts[1], out var batDau)) return null;
         if (!TimeOnly.TryParse(parts[2], out var ketThuc)) return null;
         return ketThuc <= batDau ? null : (thu, batDau, ketThuc);
+    }
+
+    private static (string? Value, string? ErrorMessage)? BuildCustomSlotValue(MentorAvailabilityViewModel model)
+    {
+        var hasAnyCustomValue = model.ThuTuyChinh.HasValue || model.GioBatDauTuyChinh.HasValue || model.GioKetThucTuyChinh.HasValue;
+        if (!hasAnyCustomValue) return null;
+
+        if (!model.ThuTuyChinh.HasValue || !model.GioBatDauTuyChinh.HasValue || !model.GioKetThucTuyChinh.HasValue)
+        {
+            return (null, "Vui lòng nhập đủ thứ, giờ bắt đầu và giờ kết thúc cho khung giờ tùy chỉnh.");
+        }
+
+        if (model.ThuTuyChinh.Value < 2 || model.ThuTuyChinh.Value > 8)
+        {
+            return (null, "Thứ trong tuần không hợp lệ.");
+        }
+
+        if (model.GioKetThucTuyChinh.Value <= model.GioBatDauTuyChinh.Value)
+        {
+            return (null, "Giờ kết thúc tùy chỉnh phải sau giờ bắt đầu.");
+        }
+
+        if ((model.GioKetThucTuyChinh.Value - model.GioBatDauTuyChinh.Value).TotalMinutes < 30)
+        {
+            return (null, "Mỗi khung lịch rảnh nên kéo dài ít nhất 30 phút.");
+        }
+
+        return ($"{model.ThuTuyChinh.Value}|{model.GioBatDauTuyChinh.Value:hh\\:mm}|{model.GioKetThucTuyChinh.Value:hh\\:mm}", null);
+    }
+
+    private static List<string> NormalizeSlots(List<string> values)
+    {
+        return values
+            .Select(ParseSlot)
+            .Where(slot => slot != null)
+            .Select(slot => slot!.Value)
+            .GroupBy(slot => slot.Thu)
+            .OrderBy(group => group.Key)
+            .SelectMany(group =>
+            {
+                var orderedSlots = group
+                    .OrderBy(slot => slot.BatDau)
+                    .ThenBy(slot => slot.KetThuc)
+                    .ToList();
+                var merged = new List<(int Thu, TimeOnly BatDau, TimeOnly KetThuc)>();
+
+                foreach (var slot in orderedSlots)
+                {
+                    if (merged.Count == 0)
+                    {
+                        merged.Add(slot);
+                        continue;
+                    }
+
+                    var last = merged[^1];
+                    if (slot.BatDau <= last.KetThuc)
+                    {
+                        merged[^1] = (last.Thu, last.BatDau, slot.KetThuc > last.KetThuc ? slot.KetThuc : last.KetThuc);
+                    }
+                    else
+                    {
+                        merged.Add(slot);
+                    }
+                }
+
+                return merged;
+            })
+            .Select(slot => $"{slot.Thu}|{slot.BatDau:HH\\:mm}|{slot.KetThuc:HH\\:mm}")
+            .ToList();
     }
 }

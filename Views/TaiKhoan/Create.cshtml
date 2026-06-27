@@ -82,7 +82,7 @@
                         <span>Mật khẩu</span>
                         <span class="account-input">
                             <span class="field-icon">⌕</span>
-                            <input asp-for="MatKhau" placeholder="Ít nhất 8 ký tự" autocomplete="new-password" data-password-input />
+                            <input asp-for="MatKhau" value="@Model.MatKhau" placeholder="Ít nhất 8 ký tự" autocomplete="new-password" data-password-input />
                             <button class="password-toggle" type="button" data-toggle-password aria-label="Hiện hoặc ẩn mật khẩu">◌</button>
                         </span>
                         <small asp-validation-for="MatKhau"></small>
@@ -92,7 +92,7 @@
                         <span>Xác nhận mật khẩu</span>
                         <span class="account-input">
                             <span class="field-icon">⌕</span>
-                            <input asp-for="XacNhanMatKhau" placeholder="Nhập lại mật khẩu" autocomplete="new-password" data-password-input />
+                            <input asp-for="XacNhanMatKhau" value="@Model.XacNhanMatKhau" placeholder="Nhập lại mật khẩu" autocomplete="new-password" data-password-input />
                             <button class="password-toggle" type="button" data-toggle-password aria-label="Hiện hoặc ẩn mật khẩu">◌</button>
                         </span>
                         <small asp-validation-for="XacNhanMatKhau"></small>
@@ -122,7 +122,7 @@
                 @if (!isAdminCreate)
                 {
                     <label class="check-control terms-control">
-                        <input type="checkbox" required />
+                        <input type="checkbox" name="DongYDieuKhoan" value="true" />
                         <span>Tôi đồng ý với <a href="#">Điều khoản sử dụng</a> và <a href="#">Chính sách bảo mật</a></span>
                     </label>
                 }

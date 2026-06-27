@@ -297,3 +297,144 @@ button {
         grid-template-columns: 1fr;
     }
 }
+
+/* Modern admin refresh */
+:root {
+    --admin-blue: #0a63f6;
+    --admin-green: #13b981;
+    --admin-amber: #f59f0b;
+    --admin-ink: #071327;
+    --admin-muted: #607089;
+    --admin-line: #dbe7f6;
+}
+
+body {
+    background: linear-gradient(180deg, #f8fbff 0%, #f3f7fc 100%);
+    color: var(--admin-ink);
+}
+
+.sidebar,
+.topbar,
+.panel,
+.card,
+.support {
+    border-color: rgba(199, 216, 238, .9);
+    background: rgba(255, 255, 255, .94);
+    box-shadow: 0 12px 32px rgba(17, 63, 130, .07);
+}
+
+.sidebar {
+    position: sticky;
+    top: 0;
+    min-height: 100vh;
+    backdrop-filter: blur(18px);
+}
+
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(18px);
+}
+
+.logo h2,
+nav a.active,
+nav a:hover,
+.admin-logout-form button {
+    color: var(--admin-blue);
+}
+
+nav a {
+    font-weight: 800;
+    transition: background .18s ease, color .18s ease, transform .18s ease;
+}
+
+nav a.active,
+nav a:hover {
+    background: linear-gradient(135deg, #eef6ff, #f8fbff);
+    transform: translateX(3px);
+}
+
+.top-actions input {
+    border-color: var(--admin-line);
+    background: #fff;
+    box-shadow: 0 8px 20px rgba(17, 63, 130, .06);
+}
+
+.top-actions input:focus {
+    outline: 0;
+    border-color: rgba(10, 99, 246, .72);
+    box-shadow: 0 0 0 4px rgba(10, 99, 246, .10);
+}
+
+.card,
+.panel {
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.card:hover,
+.panel:hover {
+    transform: translateY(-3px);
+    border-color: rgba(10, 99, 246, .28);
+    box-shadow: 0 20px 52px rgba(17, 63, 130, .11);
+}
+
+.card h2,
+.donut {
+    color: var(--admin-ink);
+}
+
+.avatar,
+button,
+.admin-logout-form button:hover {
+    background: linear-gradient(135deg, var(--admin-blue), #0f7cff);
+}
+
+button {
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease;
+    box-shadow: 0 12px 28px rgba(10, 99, 246, .18);
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 40px rgba(10, 99, 246, .22);
+}
+
+th {
+    color: var(--admin-muted);
+    background: #f7faff;
+    font-weight: 900;
+}
+
+tbody tr:hover td {
+    background: #f9fcff;
+}
+
+@media (max-width: 760px) {
+    .admin-layout {
+        display: block;
+    }
+
+    .sidebar {
+        position: static;
+        min-height: auto;
+    }
+
+    .topbar {
+        height: auto;
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 14px;
+        padding: 20px;
+    }
+
+    .cards {
+        grid-template-columns: 1fr;
+        padding: 20px;
+    }
+
+    .dashboard-grid {
+        padding: 0 20px 24px;
+    }
+}

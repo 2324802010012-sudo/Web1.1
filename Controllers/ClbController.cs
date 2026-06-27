@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StudyConnect.Data;
@@ -8,11 +10,20 @@ namespace StudyConnect.Controllers;
 
 public class ClbController : RoleProtectedController
 {
-    private readonly AppDbContext _context;
+    private static readonly HashSet<string> AllowedDocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx", ".txt", ".zip", ".rar", ".png", ".jpg", ".jpeg"
+    };
 
-    public ClbController(AppDbContext context)
+    private const long MaxDocumentSize = 20 * 1024 * 1024;
+
+    private readonly AppDbContext _context;
+    private readonly IWebHostEnvironment _environment;
+
+    public ClbController(AppDbContext context, IWebHostEnvironment environment)
     {
         _context = context;
+        _environment = environment;
     }
 
     [HttpPost]
@@ -50,6 +61,114 @@ public class ClbController : RoleProtectedController
         await _context.SaveChangesAsync();
         TempData["Success"] = $"Bạn đã tham gia {club.TenClb}.";
         return RedirectToAction("CauLacBo", "Home", null, "clb-cua-toi");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [RequestSizeLimit(MaxDocumentSize)]
+    public async Task<IActionResult> UploadDocument(int clbId, string? tieuDe, string? moTa, IFormFile? tepTaiLieu, string? returnTo)
+    {
+        var guard = RequireRoles(AccountRoles.SinhVien, AccountRoles.ChuNhiemClb);
+        if (guard != null) return guard;
+
+        var club = await _context.CauLacBos.FindAsync(clbId);
+        if (club == null) return NotFound();
+
+        if (!await CanUploadToClubAsync(clbId))
+        {
+            TempData["Error"] = "Bạn cần là thành viên hoặc Chủ nhiệm của CLB để đăng tài liệu.";
+            return RedirectAfterDocumentChange(returnTo);
+        }
+
+        if (tepTaiLieu == null || tepTaiLieu.Length == 0)
+        {
+            TempData["Error"] = "Vui lòng chọn tệp tài liệu cần tải lên.";
+            return RedirectAfterDocumentChange(returnTo);
+        }
+
+        if (tepTaiLieu.Length > MaxDocumentSize)
+        {
+            TempData["Error"] = "Tệp tài liệu không được vượt quá 20MB.";
+            return RedirectAfterDocumentChange(returnTo);
+        }
+
+        var extension = Path.GetExtension(tepTaiLieu.FileName);
+        if (string.IsNullOrWhiteSpace(extension) || !AllowedDocumentExtensions.Contains(extension))
+        {
+            TempData["Error"] = "Định dạng tài liệu chưa được hỗ trợ.";
+            return RedirectAfterDocumentChange(returnTo);
+        }
+
+        var uploadRoot = Path.Combine(_environment.WebRootPath, "uploads", "clb-documents");
+        Directory.CreateDirectory(uploadRoot);
+
+        var storedName = $"clb-{clbId}-{DateTime.Now:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
+        var storedPath = Path.Combine(uploadRoot, storedName);
+        await using (var stream = System.IO.File.Create(storedPath))
+        {
+            await tepTaiLieu.CopyToAsync(stream);
+        }
+
+        var cleanTitle = string.IsNullOrWhiteSpace(tieuDe)
+            ? Path.GetFileNameWithoutExtension(tepTaiLieu.FileName)
+            : tieuDe.Trim();
+
+        _context.TaiLieuClbs.Add(new TaiLieuClb
+        {
+            MaClb = clbId,
+            TieuDe = cleanTitle.Length > 200 ? cleanTitle[..200] : cleanTitle,
+            MoTa = string.IsNullOrWhiteSpace(moTa) ? null : moTa.Trim(),
+            TepDinhKem = $"/uploads/clb-documents/{storedName}",
+            NguoiDang = CurrentUserId!.Value,
+            NgayDang = DateTime.Now
+        });
+
+        await _context.SaveChangesAsync();
+        TempData["Success"] = $"Đã đăng tài liệu cho {club.TenClb}.";
+        return RedirectAfterDocumentChange(returnTo);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteDocument(int id, string? returnTo)
+    {
+        var guard = RequireRoles(AccountRoles.SinhVien, AccountRoles.ChuNhiemClb);
+        if (guard != null) return guard;
+
+        var document = await _context.TaiLieuClbs
+            .Include(t => t.MaClbNavigation)
+            .FirstOrDefaultAsync(t => t.MaTaiLieu == id);
+
+        if (document == null) return NotFound();
+
+        var canDelete = document.NguoiDang == CurrentUserId ||
+            (string.Equals(CurrentUserRole, AccountRoles.ChuNhiemClb, StringComparison.OrdinalIgnoreCase) && await CanUploadToClubAsync(document.MaClb));
+
+        if (!canDelete)
+        {
+            TempData["Error"] = "Bạn không có quyền xóa tài liệu này.";
+            return RedirectAfterDocumentChange(returnTo);
+        }
+
+        DeleteStoredDocument(document.TepDinhKem);
+        _context.TaiLieuClbs.Remove(document);
+        await _context.SaveChangesAsync();
+
+        TempData["Success"] = $"Đã xóa tài liệu khỏi {document.MaClbNavigation.TenClb}.";
+        return RedirectAfterDocumentChange(returnTo);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ViewDocument(int id)
+    {
+        var document = await _context.TaiLieuClbs
+            .Include(t => t.MaClbNavigation)
+            .Include(t => t.NguoiDangNavigation)
+            .FirstOrDefaultAsync(t => t.MaTaiLieu == id);
+
+        if (document == null) return NotFound();
+
+        return View(document);
     }
 
     [HttpPost]
@@ -171,7 +290,44 @@ public class ClbController : RoleProtectedController
         return await _context.ThanhVienClbs.AnyAsync(t =>
             t.MaSinhVien == sinhVienId &&
             t.MaClb == clbId &&
-            (t.TrangThai == null || t.TrangThai == "Hoạt động"));
+            (t.TrangThai == null || (t.TrangThai != "Đã rời" && t.TrangThai != "Đã khóa")));
+    }
+
+    private async Task<bool> CanUploadToClubAsync(int clbId)
+    {
+        if (!CurrentUserId.HasValue) return false;
+
+        var sinhVien = await CurrentSinhVienAsync();
+        if (sinhVien == null) return false;
+
+        var isMember = await IsActiveMemberAsync(sinhVien.MaSinhVien, clbId);
+        if (!isMember) return false;
+
+        if (string.Equals(CurrentUserRole, AccountRoles.ChuNhiemClb, StringComparison.OrdinalIgnoreCase)) return true;
+        return string.Equals(CurrentUserRole, AccountRoles.SinhVien, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private IActionResult RedirectAfterDocumentChange(string? returnTo)
+    {
+        if (string.Equals(returnTo, "ChuNhiem", StringComparison.OrdinalIgnoreCase))
+        {
+            return RedirectToAction("Index", "ChuNhiemCLB", null, "tai-lieu-clb");
+        }
+
+        return RedirectToAction("CauLacBo", "Home", null, "tai-lieu-clb");
+    }
+
+    private void DeleteStoredDocument(string? publicPath)
+    {
+        if (string.IsNullOrWhiteSpace(publicPath)) return;
+
+        var uploadRoot = Path.GetFullPath(Path.Combine(_environment.WebRootPath, "uploads", "clb-documents"));
+        var fileName = Path.GetFileName(publicPath);
+        if (string.IsNullOrWhiteSpace(fileName)) return;
+
+        var filePath = Path.GetFullPath(Path.Combine(uploadRoot, fileName));
+        if (!filePath.StartsWith(uploadRoot, StringComparison.OrdinalIgnoreCase)) return;
+        if (System.IO.File.Exists(filePath)) System.IO.File.Delete(filePath);
     }
 
     private static bool IsElectionOpen(DotDeCuPhoChuNhiem dot)
