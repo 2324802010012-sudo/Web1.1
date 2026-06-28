@@ -123,6 +123,8 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<DanhGiaHuongDan>(entity =>
         {
+            entity.ToTable("DanhGiaHuongDan", tb => tb.HasTrigger("TR_DanhGiaHuongDan_CapNhatDiem"));
+
             entity.HasKey(e => e.MaDanhGia).HasName("PK__DanhGiaH__AA9515BFB3430D2B");
 
             entity.Property(e => e.NgayDanhGia).HasDefaultValueSql("(getdate())");
@@ -155,7 +157,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.MaGhepNoi).HasName("PK__GhepNoiH__0A31973A9B3861D7");
 
-            entity.Property(e => e.DiemPhuHop).HasDefaultValue(0m);
+            entity.Property(e => e.DiemPhuHop).ValueGeneratedOnAddOrUpdate();
             entity.Property(e => e.NgayGhep).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.TrangThai).HasDefaultValue("Đề xuất");
 
@@ -249,6 +251,8 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<PhieuBauPhoChuNhiem>(entity =>
         {
+            entity.ToTable("PhieuBauPhoChuNhiem", tb => tb.HasTrigger("TR_PhieuBauPhoChuNhiem_CheckThanhVien"));
+
             entity.HasKey(e => e.MaPhieu).HasName("PK__PhieuBau__2660BFE00CA4801B");
 
             entity.Property(e => e.ThoiGianBau).HasDefaultValueSql("(getdate())");
@@ -329,6 +333,8 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<UngVienPhoChuNhiem>(entity =>
         {
+            entity.ToTable("UngVienPhoChuNhiem", tb => tb.HasTrigger("TR_UngVienPhoChuNhiem_CheckThanhVien"));
+
             entity.HasKey(e => e.MaUngVien).HasName("PK__UngVienP__8FDBA8A96EAD5251");
 
             entity.Property(e => e.TrangThai).HasDefaultValue("Hợp lệ");

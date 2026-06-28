@@ -365,6 +365,6 @@ public class TaiKhoansController : Controller
 
     private static IEnumerable<SelectListItem> StatusOptions()
     {
-        return new[] { "Hoạt động", "Tạm khóa" }.Select(status => new SelectListItem(status, status));
+        return new[] { "Hoạt động", "Bị khóa" }.Select(status => new SelectListItem(status, status));
     }
 }

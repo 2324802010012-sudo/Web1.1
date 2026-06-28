@@ -292,7 +292,7 @@ public class ChuNhiemCLBController : RoleProtectedController
             TenDot = tenDot.Trim(),
             ThoiGianBatDau = thoiGianBatDau,
             ThoiGianKetThuc = thoiGianKetThuc,
-            TrangThai = "Mở"
+            TrangThai = "Đang đề cử"
         });
 
         await NotifyClubMembersAsync(clbId, "Mở bầu Phó chủ nhiệm CLB", $"CLB đã mở đợt bầu cử: {tenDot.Trim()}.", "BauCuCLB");

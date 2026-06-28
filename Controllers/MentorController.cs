@@ -34,6 +34,11 @@ public class MentorController : RoleProtectedController
                 .Take(8)
                 .ToListAsync();
 
+        var currentMonth = DateTime.Now.ToString("MM/yyyy");
+        var currentRanking = mentorId == 0
+            ? null
+            : await _context.XepHangMentors.FirstOrDefaultAsync(x => x.MaHuongDan == mentorId && x.ThangNam == currentMonth);
+
         var sessions = mentorId == 0
             ? new List<LichHoc>()
             : await _context.LichHocs
@@ -53,10 +58,12 @@ public class MentorController : RoleProtectedController
 
         ViewBag.UserName = CurrentUserName;
         ViewBag.GhepNoi = mentorId == 0 ? 0 : await _context.GhepNoiHocTaps.CountAsync(g => g.MaHuongDan == mentorId);
-        ViewBag.LichHoc = sessions.Count(l => l.NgayHoc >= today && l.TrangThai != "Đã hoàn thành");
+        ViewBag.LichHoc = sessions.Count(l => l.NgayHoc >= today && l.TrangThai != "Đã học" && l.TrangThai != "Đã hoàn thành");
         ViewBag.BaoCao = mentorId == 0 ? 0 : await _context.BaoCaoBuoiHocs.CountAsync(b => b.MaLichHocNavigation.MaGhepNoiNavigation.MaHuongDan == mentorId);
         ViewBag.DanhGia = mentor?.DiemDanhGia ?? 0;
         ViewBag.UyTin = mentor?.DiemUyTin ?? 0;
+        ViewBag.XepHang = currentRanking?.HangTong;
+        ViewBag.XepHangLinhVuc = currentRanking?.HangTheoLinhVuc;
         ViewBag.GhepNoiList = matches;
         ViewBag.LichHocList = sessions;
         ViewBag.LichRanhList = mentor?.MaTaiKhoanNavigation.LichRanhs.OrderBy(l => l.Thu).ThenBy(l => l.GioBatDau).ToList() ?? new List<LichRanh>();
@@ -139,8 +146,8 @@ public class MentorController : RoleProtectedController
         var match = await CurrentMentorMatchAsync(id);
         if (match == null) return NotFound();
 
-        match.TrangThai = "Mentor đã chấp nhận";
-        match.MaYeuCauNavigation.TrangThai = "Đang xếp lịch";
+        match.TrangThai = "Mentor chấp nhận";
+        match.MaYeuCauNavigation.TrangThai = "Đã ghép";
         await _context.SaveChangesAsync();
         TempData["SuccessMessage"] = "Đã chấp nhận ghép nối. Sinh viên có thể lên lịch học.";
         return RedirectToAction(nameof(Details), new { id });
@@ -210,11 +217,13 @@ public class MentorController : RoleProtectedController
         report.NhanXet = string.IsNullOrWhiteSpace(model.NhanXet) ? null : model.NhanXet.Trim();
         report.NgayBaoCao = DateTime.Now;
 
-        session.TrangThai = "Đã hoàn thành";
-        session.MaGhepNoiNavigation.TrangThai = "Chờ sinh viên đánh giá";
-        session.MaGhepNoiNavigation.MaYeuCauNavigation.TrangThai = "Chờ đánh giá";
+        session.TrangThai = "Đã học";
+        session.MaGhepNoiNavigation.TrangThai = "Đã lên lịch";
+        session.MaGhepNoiNavigation.MaYeuCauNavigation.TrangThai = "Đang học";
 
         await _context.SaveChangesAsync();
+        await UpdateStudyHistoryAsync(session.MaGhepNoiNavigation);
+        await UpdateMentorRatingAndRankingAsync(session.MaGhepNoiNavigation.MaHuongDan);
         TempData["SuccessMessage"] = "Đã lưu báo cáo buổi học.";
         return RedirectToAction(nameof(Index), null, null, "bao-cao");
     }
@@ -265,6 +274,110 @@ public class MentorController : RoleProtectedController
             .FirstOrDefaultAsync(l => l.MaLichHoc == sessionId && l.MaGhepNoiNavigation.MaHuongDan == mentor.MaHuongDan);
     }
 
+    private async Task UpdateStudyHistoryAsync(GhepNoiHocTap match)
+    {
+        var completedSessions = match.LichHocs
+            .Where(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null)
+            .OrderBy(l => l.NgayHoc)
+            .ThenBy(l => l.GioBatDau)
+            .ToList();
+
+        var latestReport = completedSessions
+            .Select(l => l.BaoCaoBuoiHoc)
+            .LastOrDefault(r => r != null);
+
+        var history = await _context.LichSuHocTaps.FirstOrDefaultAsync(h =>
+            h.MaGhepNoi == match.MaGhepNoi && h.MaSinhVien == match.MaYeuCauNavigation.MaSinhVien);
+
+        if (history == null)
+        {
+            history = new LichSuHocTap
+            {
+                MaGhepNoi = match.MaGhepNoi,
+                MaSinhVien = match.MaYeuCauNavigation.MaSinhVien
+            };
+            _context.LichSuHocTaps.Add(history);
+        }
+
+        history.SoBuoiDaHoc = completedSessions.Count;
+        history.TienDo = match.TrangThai == "Hoàn thành"
+            ? "Hoàn thành"
+            : completedSessions.Count > 0 ? "Đang học" : "Mới ghép nối";
+        history.KetQuaTongHop = latestReport == null
+            ? $"Ghép nối {match.MaGhepNoi} đang theo dõi tiến độ."
+            : $"Đã học {completedSessions.Count} buổi. Gần nhất: {latestReport.NoiDungDaHoc}";
+        history.NgayCapNhat = DateTime.Now;
+
+        await _context.SaveChangesAsync();
+    }
+
+    private async Task UpdateMentorRatingAndRankingAsync(int mentorId)
+    {
+        var mentor = await _context.NguoiHuongDans
+            .Include(m => m.ChuyenMonNguoiHuongDans)
+            .Include(m => m.GhepNoiHocTaps)
+                .ThenInclude(g => g.LichHocs)
+                    .ThenInclude(l => l.BaoCaoBuoiHoc)
+            .Include(m => m.DanhGiaHuongDans)
+            .FirstOrDefaultAsync(m => m.MaHuongDan == mentorId);
+
+        if (mentor == null) return;
+
+        var quality = CalculateMentorQuality(mentor);
+        mentor.SoLuotDanhGia = quality.ReviewCount;
+        mentor.DiemDanhGia = quality.AverageRating;
+        mentor.DiemUyTin = quality.Reputation;
+
+        var month = DateTime.Now.ToString("MM/yyyy");
+        var primaryFieldId = mentor.ChuyenMonNguoiHuongDans
+            .OrderByDescending(c => c.MucDoThanhThao ?? 0)
+            .Select(c => c.MaLinhVuc)
+            .FirstOrDefault();
+
+        var activeMentors = await _context.NguoiHuongDans
+            .Include(m => m.ChuyenMonNguoiHuongDans)
+            .Where(m => m.TrangThai == null || m.TrangThai == "Hoạt động")
+            .ToListAsync();
+
+        var overallRank = activeMentors
+            .Select(m => new { MentorId = m.MaHuongDan, Score = CalculateMentorQuality(m).Reputation })
+            .OrderByDescending(x => x.Score)
+            .ThenBy(x => x.MentorId)
+            .Select((x, index) => new { x.MentorId, Rank = index + 1 })
+            .FirstOrDefault(x => x.MentorId == mentorId)?.Rank ?? 1;
+
+        int? fieldRank = null;
+        if (primaryFieldId != 0)
+        {
+            fieldRank = activeMentors
+                .Where(m => m.ChuyenMonNguoiHuongDans.Any(c => c.MaLinhVuc == primaryFieldId))
+                .Select(m => new { MentorId = m.MaHuongDan, Score = CalculateMentorQuality(m).Reputation })
+                .OrderByDescending(x => x.Score)
+                .ThenBy(x => x.MentorId)
+                .Select((x, index) => new { x.MentorId, Rank = index + 1 })
+                .FirstOrDefault(x => x.MentorId == mentorId)?.Rank;
+        }
+
+        var ranking = await _context.XepHangMentors
+            .FirstOrDefaultAsync(x => x.MaHuongDan == mentorId && x.ThangNam == month);
+
+        if (ranking == null)
+        {
+            ranking = new XepHangMentor
+            {
+                MaHuongDan = mentorId,
+                ThangNam = month
+            };
+            _context.XepHangMentors.Add(ranking);
+        }
+
+        ranking.DiemUyTin = quality.Reputation;
+        ranking.HangTong = overallRank;
+        ranking.HangTheoLinhVuc = fieldRank;
+
+        await _context.SaveChangesAsync();
+    }
+
     private async Task<List<string>> CurrentAvailabilityValuesAsync()
     {
         var slots = await CurrentAvailabilityListAsync();
@@ -307,7 +420,7 @@ public class MentorController : RoleProtectedController
             .Include(g => g.MaYeuCauNavigation)
                 .ThenInclude(y => y.MaSinhVienNavigation)
             .Where(g => g.MaHuongDan == mentor.MaHuongDan)
-            .Where(g => g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch" || g.TrangThai == "Đề xuất")
+            .Where(g => g.TrangThai == "Mentor chấp nhận" || g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch" || g.TrangThai == "Đề xuất" || g.TrangThai == "Đã gửi yêu cầu")
             .Select(g => g.MaYeuCauNavigation.MaSinhVienNavigation.MaTaiKhoan)
             .Distinct()
             .ToListAsync();
@@ -332,7 +445,7 @@ public class MentorController : RoleProtectedController
         var notifications = new List<DashboardNotificationViewModel>();
 
         notifications.AddRange(matches
-            .Where(m => m.TrangThai == "Đề xuất")
+            .Where(m => m.TrangThai == "Đề xuất" || m.TrangThai == "Đã gửi yêu cầu")
             .Take(3)
             .Select(m => new DashboardNotificationViewModel
             {
@@ -343,7 +456,7 @@ public class MentorController : RoleProtectedController
             }));
 
         notifications.AddRange(sessions
-            .Where(l => l.NgayHoc >= today && l.TrangThai != "Đã hoàn thành")
+            .Where(l => l.NgayHoc >= today && l.TrangThai != "Đã học" && l.TrangThai != "Đã hoàn thành")
             .Take(3)
             .Select(l => new DashboardNotificationViewModel
             {
@@ -355,6 +468,42 @@ public class MentorController : RoleProtectedController
 
         return notifications.Take(5).ToList();
     }
+
+    private static MentorQualityMetrics CalculateMentorQuality(NguoiHuongDan mentor)
+    {
+        var ratings = mentor.DanhGiaHuongDans
+            .Where(d => d.SoSao.HasValue)
+            .Select(d => d.SoSao!.Value)
+            .ToList();
+
+        if (ratings.Count == 0)
+        {
+            ratings = mentor.GhepNoiHocTaps
+                .SelectMany(g => g.DanhGiaHuongDans)
+                .Where(d => d.SoSao.HasValue)
+                .Select(d => d.SoSao!.Value)
+                .ToList();
+        }
+
+        var reviewCount = ratings.Count;
+        var averageRating = reviewCount == 0 ? 0m : Math.Round((decimal)ratings.Average(), 2);
+        var completedSessions = mentor.GhepNoiHocTaps
+            .SelectMany(g => g.LichHocs)
+            .Count(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
+        var reportCount = mentor.GhepNoiHocTaps
+            .SelectMany(g => g.LichHocs)
+            .Count(l => l.BaoCaoBuoiHoc != null);
+
+        var ratingScore = reviewCount == 0 ? 0m : averageRating / 5m * 6m;
+        var sessionScore = Math.Min(completedSessions, 30) / 30m * 2m;
+        var reportScore = completedSessions == 0 ? 0m : Math.Min(reportCount, completedSessions) / (decimal)completedSessions;
+        var reviewVolumeScore = Math.Min(reviewCount, 20) / 20m;
+        var reputation = Math.Round(Math.Clamp(ratingScore + sessionScore + reportScore + reviewVolumeScore, 0m, 10m), 2);
+
+        return new MentorQualityMetrics(reputation, averageRating, reviewCount);
+    }
+
+    private sealed record MentorQualityMetrics(decimal Reputation, decimal AverageRating, int ReviewCount);
 
     private static (int Thu, TimeOnly BatDau, TimeOnly KetThuc)? ParseSlot(string value)
     {

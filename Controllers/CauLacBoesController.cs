@@ -1,150 +1,222 @@
-
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using StudyConnect.Models;
 using StudyConnect.Data;
+using StudyConnect.Models;
+using StudyConnect.ViewModels;
 
-public class CauLacBoesController : Controller
+namespace StudyConnect.Controllers;
+
+public class CauLacBoController : RoleProtectedController
 {
     private readonly AppDbContext _context;
 
-    public CauLacBoesController(AppDbContext context)
+    public CauLacBoController(AppDbContext context)
     {
         _context = context;
     }
 
-    // GET: CAULACBOS
-    public async Task<IActionResult> Index()    
+    public async Task<IActionResult> Index()
     {
-        return View(await _context.CauLacBos.ToListAsync());
+        var guard = RequireRoles(AccountRoles.QuanTri);
+        if (guard != null) return guard;
+
+        var clubs = await _context.CauLacBos
+            .Include(c => c.ThanhVienClbs)
+            .Include(c => c.HoatDongClbs)
+            .Include(c => c.TaiLieuClbs)
+            .Include(c => c.DotDeCuPhoChuNhiems)
+            .OrderBy(c => c.TenClb)
+            .ToListAsync();
+
+        ViewBag.TotalMembers = clubs.Sum(c => c.ThanhVienClbs.Count(t => t.TrangThai == null || t.TrangThai == "Hoạt động"));
+        ViewBag.TotalActivities = clubs.Sum(c => c.HoatDongClbs.Count);
+        ViewBag.TotalDocuments = clubs.Sum(c => c.TaiLieuClbs.Count);
+        ViewBag.ActiveClubs = clubs.Count(c => c.TrangThai == null || c.TrangThai == "Hoạt động");
+
+        return View(clubs);
     }
 
-    // GET: CAULACBOS/Details/5
-    public async Task<IActionResult> Details(int? maclb)
+    public async Task<IActionResult> Details(int? id)
     {
-        if (maclb == null)
-        {
-            return NotFound();
-        }
+        var guard = RequireRoles(AccountRoles.QuanTri);
+        if (guard != null) return guard;
+        if (id == null) return NotFound();
 
-        var caulacbo = await _context.CauLacBos
-            .FirstOrDefaultAsync(m => m.MaClb == maclb);
-        if (caulacbo == null)
-        {
-            return NotFound();
-        }
+        var club = await _context.CauLacBos
+            .Include(c => c.ThanhVienClbs)
+                .ThenInclude(t => t.MaSinhVienNavigation)
+                    .ThenInclude(s => s.MaTaiKhoanNavigation)
+            .Include(c => c.HoatDongClbs)
+                .ThenInclude(h => h.NguoiDangNavigation)
+            .Include(c => c.TaiLieuClbs)
+                .ThenInclude(t => t.NguoiDangNavigation)
+            .Include(c => c.DotDeCuPhoChuNhiems)
+            .FirstOrDefaultAsync(m => m.MaClb == id);
 
-        return View(caulacbo);
+        return club == null ? NotFound() : View(club);
     }
 
-    // GET: CAULACBOS/Create
     public IActionResult Create()
     {
-        return View();
+        var guard = RequireRoles(AccountRoles.QuanTri);
+        if (guard != null) return guard;
+
+        PopulateStatusOptions();
+        return View(new CauLacBo
+        {
+            NgayThanhLap = DateOnly.FromDateTime(DateTime.Today),
+            TrangThai = "Hoạt động"
+        });
     }
 
-    // POST: CAULACBOS/Create
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("MaClb,TenClb,MoTa,NgayThanhLap,TrangThai,DotDeCuPhoChuNhiems,HoatDongClbs,TaiLieuClbs,ThanhVienClbs")] CauLacBo caulacbo)
+    public async Task<IActionResult> Create([Bind("TenClb,MoTa,NgayThanhLap,TrangThai")] CauLacBo club)
     {
-        if (ModelState.IsValid)
+        var guard = RequireRoles(AccountRoles.QuanTri);
+        if (guard != null) return guard;
+
+        NormalizeClub(club);
+        await ValidateClubAsync(club);
+
+        if (!ModelState.IsValid)
         {
-            _context.Add(caulacbo);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            PopulateStatusOptions(club.TrangThai);
+            return View(club);
         }
-        return View(caulacbo);
+
+        _context.CauLacBos.Add(club);
+        await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = $"Đã tạo CLB {club.TenClb}.";
+        return RedirectToAction(nameof(Index));
     }
 
-    // GET: CAULACBOS/Edit/5
-    public async Task<IActionResult> Edit(int? maclb)
+    public async Task<IActionResult> Edit(int? id)
     {
-        if (maclb == null)
-        {
-            return NotFound();
-        }
+        var guard = RequireRoles(AccountRoles.QuanTri);
+        if (guard != null) return guard;
+        if (id == null) return NotFound();
 
-        var caulacbo = await _context.CauLacBos.FindAsync(maclb);
-        if (caulacbo == null)
-        {
-            return NotFound();
-        }
-        return View(caulacbo);
+        var club = await _context.CauLacBos.FindAsync(id);
+        if (club == null) return NotFound();
+
+        PopulateStatusOptions(club.TrangThai);
+        return View(club);
     }
 
-    // POST: CAULACBOS/Edit/5
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? maclb, [Bind("MaClb,TenClb,MoTa,NgayThanhLap,TrangThai,DotDeCuPhoChuNhiems,HoatDongClbs,TaiLieuClbs,ThanhVienClbs")] CauLacBo caulacbo)
+    public async Task<IActionResult> Edit(int id, [Bind("MaClb,TenClb,MoTa,NgayThanhLap,TrangThai")] CauLacBo club)
     {
-        if (maclb != caulacbo.MaClb)
+        var guard = RequireRoles(AccountRoles.QuanTri);
+        if (guard != null) return guard;
+        if (id != club.MaClb) return NotFound();
+
+        NormalizeClub(club);
+        await ValidateClubAsync(club);
+
+        if (!ModelState.IsValid)
         {
-            return NotFound();
+            PopulateStatusOptions(club.TrangThai);
+            return View(club);
         }
 
-        if (ModelState.IsValid)
-        {
-            try
-            {
-                _context.Update(caulacbo);
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CauLacBoExists(caulacbo.MaClb))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-            return RedirectToAction(nameof(Index));
-        }
-        return View(caulacbo);
+        var existing = await _context.CauLacBos.FindAsync(id);
+        if (existing == null) return NotFound();
+
+        existing.TenClb = club.TenClb;
+        existing.MoTa = club.MoTa;
+        existing.NgayThanhLap = club.NgayThanhLap;
+        existing.TrangThai = club.TrangThai;
+
+        await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = $"Đã cập nhật CLB {existing.TenClb}.";
+        return RedirectToAction(nameof(Index));
     }
 
-    // GET: CAULACBOS/Delete/5
-    public async Task<IActionResult> Delete(int? maclb)
+    public async Task<IActionResult> Delete(int? id)
     {
-        if (maclb == null)
-        {
-            return NotFound();
-        }
+        var guard = RequireRoles(AccountRoles.QuanTri);
+        if (guard != null) return guard;
+        if (id == null) return NotFound();
 
-        var caulacbo = await _context.CauLacBos
-            .FirstOrDefaultAsync(m => m.MaClb == maclb);
-        if (caulacbo == null)
-        {
-            return NotFound();
-        }
+        var club = await _context.CauLacBos
+            .Include(c => c.ThanhVienClbs)
+            .Include(c => c.HoatDongClbs)
+            .Include(c => c.TaiLieuClbs)
+            .Include(c => c.DotDeCuPhoChuNhiems)
+            .FirstOrDefaultAsync(m => m.MaClb == id);
 
-        return View(caulacbo);
+        return club == null ? NotFound() : View(club);
     }
 
-    // POST: CAULACBOS/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int? maclb)
+    public async Task<IActionResult> DeleteConfirmed(int id)
     {
-        var caulacbo = await _context.CauLacBos.FindAsync(maclb);
-        if (caulacbo != null)
+        var guard = RequireRoles(AccountRoles.QuanTri);
+        if (guard != null) return guard;
+
+        var club = await _context.CauLacBos
+            .Include(c => c.ThanhVienClbs)
+            .Include(c => c.HoatDongClbs)
+            .Include(c => c.TaiLieuClbs)
+            .Include(c => c.DotDeCuPhoChuNhiems)
+            .FirstOrDefaultAsync(c => c.MaClb == id);
+
+        if (club == null) return NotFound();
+
+        var hasRelatedData = club.ThanhVienClbs.Any()
+            || club.HoatDongClbs.Any()
+            || club.TaiLieuClbs.Any()
+            || club.DotDeCuPhoChuNhiems.Any();
+
+        if (hasRelatedData)
         {
-            _context.CauLacBos.Remove(caulacbo);
+            club.TrangThai = "Tạm dừng";
+            TempData["SuccessMessage"] = $"CLB {club.TenClb} đã có dữ liệu liên quan nên hệ thống chuyển sang trạng thái Tạm dừng.";
+        }
+        else
+        {
+            _context.CauLacBos.Remove(club);
+            TempData["SuccessMessage"] = $"Đã xóa CLB {club.TenClb}.";
         }
 
         await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }
 
-    private bool CauLacBoExists(int? maclb)
+    private async Task ValidateClubAsync(CauLacBo club)
     {
-        return _context.CauLacBos.Any(e => e.MaClb == maclb);
+        if (string.IsNullOrWhiteSpace(club.TenClb))
+        {
+            ModelState.AddModelError(nameof(club.TenClb), "Vui lòng nhập tên CLB.");
+        }
+        else if (await _context.CauLacBos.AnyAsync(c => c.MaClb != club.MaClb && c.TenClb == club.TenClb))
+        {
+            ModelState.AddModelError(nameof(club.TenClb), "Tên CLB này đã tồn tại.");
+        }
+
+        if (club.TrangThai is not ("Hoạt động" or "Tạm dừng"))
+        {
+            ModelState.AddModelError(nameof(club.TrangThai), "Trạng thái CLB không hợp lệ.");
+        }
+    }
+
+    private static void NormalizeClub(CauLacBo club)
+    {
+        club.TenClb = club.TenClb?.Trim() ?? string.Empty;
+        club.MoTa = string.IsNullOrWhiteSpace(club.MoTa) ? null : club.MoTa.Trim();
+        club.TrangThai = string.IsNullOrWhiteSpace(club.TrangThai) ? "Hoạt động" : club.TrangThai.Trim();
+    }
+
+    private void PopulateStatusOptions(string? selected = null)
+    {
+        ViewBag.StatusOptions = new[]
+        {
+            new SelectListItem("Hoạt động", "Hoạt động", selected == "Hoạt động"),
+            new SelectListItem("Tạm dừng", "Tạm dừng", selected == "Tạm dừng")
+        };
     }
 }

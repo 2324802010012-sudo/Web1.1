@@ -44,6 +44,7 @@
             <article><small>Báo cáo đã lập</small><strong>@ViewBag.BaoCao</strong><span>Theo dõi tiến độ</span></article>
             <article><small>Đánh giá TB</small><strong>@ViewBag.DanhGia</strong><span>Từ sinh viên</span></article>
             <article><small>Điểm uy tín</small><strong>@ViewBag.UyTin</strong><span>Dùng cho gợi ý</span></article>
+            <article><small>Xếp hạng tháng này</small><strong>@(ViewBag.XepHang ?? "--")</strong><span>@(ViewBag.XepHangLinhVuc == null ? "Chưa có hạng theo lĩnh vực" : $"Hạng lĩnh vực #{ViewBag.XepHangLinhVuc}")</span></article>
         </section>
 
         <section class="role-panel" id="thong-bao">
@@ -133,7 +134,7 @@
                                 <small>Phù hợp @match.DiemPhuHop?.ToString("0")%</small>
                                 <div>
                                     <a asp-action="Details" asp-route-id="@match.MaGhepNoi">Chi tiết</a>
-                                    @if (match.TrangThai == "Đề xuất")
+                                    @if (match.TrangThai == "Đề xuất" || match.TrangThai == "Đã gửi yêu cầu")
                                     {
                                         <form asp-action="AcceptMatch" asp-route-id="@match.MaGhepNoi" method="post"><button type="submit">Chấp nhận</button></form>
                                         <form asp-action="RejectMatch" asp-route-id="@match.MaGhepNoi" method="post"><button class="light" type="submit">Từ chối</button></form>

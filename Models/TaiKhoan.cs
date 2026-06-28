@@ -19,6 +19,7 @@ public partial class TaiKhoan
     [StringLength(150)]
     public string Email { get; set; } = null!;
 
+    [Column("MatKhauHash")]
     [StringLength(255)]
     public string MatKhau { get; set; } = null!;
 

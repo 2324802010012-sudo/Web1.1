@@ -205,7 +205,8 @@ public class CoVanController : RoleProtectedController
             mentor = new NguoiHuongDan
             {
                 MaTaiKhoan = account.MaTaiKhoan,
-                LoaiNguoiHuongDan = "Sinh viên mentor",
+                MaSinhVien = application.MaSinhVien,
+                LoaiNguoiHuongDan = "SinhVien",
                 DiemDanhGia = 0,
                 DiemUyTin = 6,
                 SoLuotDanhGia = 0,
@@ -217,7 +218,8 @@ public class CoVanController : RoleProtectedController
         else
         {
             mentor.TrangThai = "Hoạt động";
-            mentor.LoaiNguoiHuongDan = string.IsNullOrWhiteSpace(mentor.LoaiNguoiHuongDan) ? "Sinh viên mentor" : mentor.LoaiNguoiHuongDan;
+            mentor.MaSinhVien ??= application.MaSinhVien;
+            mentor.LoaiNguoiHuongDan = "SinhVien";
             mentor.DiemUyTin ??= 6;
             mentor.DiemDanhGia ??= 0;
             mentor.SoLuotDanhGia ??= 0;
@@ -329,7 +331,7 @@ public class CoVanController : RoleProtectedController
 
     private static bool IsCompletedSession(LichHoc schedule)
     {
-        return schedule.TrangThai == "Đã hoàn thành" || schedule.BaoCaoBuoiHoc != null;
+        return schedule.TrangThai == "Đã học" || schedule.TrangThai == "Đã hoàn thành" || schedule.BaoCaoBuoiHoc != null;
     }
 
     private sealed record MentorQualityMetrics(

@@ -1,82 +1,31 @@
 @model StudyConnect.Models.CauLacBo
 
 @{
-    ViewData["Title"] = "Delete";
+    ViewData["Title"] = "Tạm dừng hoặc xóa CLB";
+    var relatedCount = Model.ThanhVienClbs.Count + Model.HoatDongClbs.Count + Model.TaiLieuClbs.Count + Model.DotDeCuPhoChuNhiems.Count;
 }
 
-<h1>Delete</h1>
+<main class="admin-page narrow">
+    <header class="page-heading">
+        <div>
+            <p class="eyebrow">Cộng đồng CLB</p>
+            <h1>Tạm dừng hoặc xóa CLB</h1>
+            <p class="muted-copy">Nếu CLB đã có thành viên, hoạt động, tài liệu hoặc đợt bầu chọn, hệ thống sẽ chuyển sang trạng thái Tạm dừng để giữ lịch sử.</p>
+        </div>
+    </header>
 
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>StudyConnect.Models.CauLacBo</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TenClb)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TenClb)
-        </dd>
-    </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.MoTa)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.MoTa)
-        </dd>
-    </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.NgayThanhLap)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.NgayThanhLap)
-        </dd>
-    </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TrangThai)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TrangThai)
-        </dd>
-    </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.DotDeCuPhoChuNhiems)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.DotDeCuPhoChuNhiems)
-        </dd>
-    </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.HoatDongClbs)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.HoatDongClbs)
-        </dd>
-    </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TaiLieuClbs)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TaiLieuClbs)
-        </dd>
-    </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ThanhVienClbs)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ThanhVienClbs)
-        </dd>
-    </dl>
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="MaClb" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
-        <a asp-action="Index">Back to List</a>
-    </form>
-</div>
+    <section class="detail-card danger-zone">
+        <h2>@Model.TenClb</h2>
+        <dl>
+            <dt>Trạng thái hiện tại</dt><dd>@(Model.TrangThai ?? "Hoạt động")</dd>
+            <dt>Dữ liệu liên quan</dt><dd>@relatedCount mục</dd>
+            <dt>Hành động</dt><dd>@(relatedCount > 0 ? "Chuyển sang Tạm dừng" : "Xóa khỏi hệ thống")</dd>
+        </dl>
+
+        <form asp-action="Delete" method="post" class="row-actions">
+            <input type="hidden" name="id" value="@Model.MaClb" />
+            <button type="submit" class="btn btn-danger">Xác nhận</button>
+            <a class="btn btn-light" asp-action="Details" asp-route-id="@Model.MaClb">Quay lại chi tiết</a>
+        </form>
+    </section>
+</main>

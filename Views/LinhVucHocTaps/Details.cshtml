@@ -1,0 +1,51 @@
+@model StudyConnect.Models.LinhVucHocTap
+
+@{
+    ViewData["Title"] = "Chi tiết lĩnh vực";
+    var mentors = Model.ChuyenMonNguoiHuongDans
+        .OrderByDescending(c => c.MucDoThanhThao ?? 0)
+        .Take(8)
+        .ToList();
+}
+
+<main class="admin-page">
+    <header class="page-heading">
+        <div>
+            <p class="eyebrow">Dữ liệu nền học 1-1</p>
+            <h1>@Model.TenLinhVuc</h1>
+            <p class="muted-copy">@((string.IsNullOrWhiteSpace(Model.MoTa) ? "Chưa có mô tả." : Model.MoTa))</p>
+        </div>
+        <div class="row-actions">
+            <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.MaLinhVuc">Cập nhật</a>
+            <a class="btn btn-light" asp-action="Index">Danh sách</a>
+        </div>
+    </header>
+
+    <section class="role-stats admin-system-stats">
+        <article><small>Mentor có chuyên môn</small><strong>@Model.ChuyenMonNguoiHuongDans.Count</strong><span>Dùng cho gợi ý</span></article>
+        <article><small>Yêu cầu hỗ trợ</small><strong>@Model.YeuCauHoTroHocTaps.Count</strong><span>Nhu cầu sinh viên</span></article>
+        <article><small>Hồ sơ đăng ký mentor</small><strong>@Model.DangKyHuongDans.Count</strong><span>Đang / đã duyệt</span></article>
+        <article><small>Trạng thái</small><strong>@(Model.TrangThai ?? "Hoạt động")</strong><span>Danh mục</span></article>
+    </section>
+
+    <section class="role-panel">
+        <div class="role-panel-head"><h2>Mentor nổi bật theo lĩnh vực</h2><strong>@mentors.Count</strong></div>
+        <div class="manager-member-list">
+            @if (!mentors.Any())
+            {
+                <p class="empty-text">Chưa có mentor khai báo chuyên môn trong lĩnh vực này.</p>
+            }
+            @foreach (var specialty in mentors)
+            {
+                <div class="manager-member-row">
+                    <div>
+                        <strong>@specialty.MaHuongDanNavigation.MaTaiKhoanNavigation.HoTen</strong>
+                        <small>@(specialty.MoTaKinhNghiem ?? "Chưa có mô tả kinh nghiệm.")</small>
+                    </div>
+                    <span>Mức @((specialty.MucDoThanhThao ?? 0).ToString("0"))</span>
+                    <a asp-controller="Home" asp-action="MentorDetail" asp-route-id="@specialty.MaHuongDan">Xem mentor</a>
+                </div>
+            }
+        </div>
+    </section>
+</main>

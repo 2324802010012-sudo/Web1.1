@@ -105,6 +105,9 @@ public static class StudyConnectClubSeedData
         CauLacBo uxClub,
         CauLacBo cloudClub)
     {
+        var author = await context.TaiKhoans.FirstOrDefaultAsync(t => t.VaiTro == "CoVan")
+            ?? await context.TaiKhoans.FirstAsync();
+
         var activities = new[]
         {
             (Club: aiClub, Title: "Workshop Build Chatbot với RAG", Content: "Thực hành xây dựng chatbot học tập dựa trên tài liệu CLB.", Time: DateTime.Today.AddDays(3).AddHours(19), Place: "Online Google Meet"),
@@ -128,6 +131,7 @@ public static class StudyConnectClubSeedData
                 NoiDung = activity.Content,
                 ThoiGian = activity.Time,
                 DiaDiem = activity.Place,
+                NguoiDang = author.MaTaiKhoan,
                 NgayDang = DateTime.Now
             });
         }
@@ -188,7 +192,7 @@ public static class StudyConnectClubSeedData
                 TenDot = name,
                 ThoiGianBatDau = DateTime.Now.AddDays(-1),
                 ThoiGianKetThuc = DateTime.Now.AddDays(14),
-                TrangThai = "Đang diễn ra"
+                TrangThai = "Đang đề cử"
             };
             context.DotDeCuPhoChuNhiems.Add(election);
             await context.SaveChangesAsync();
@@ -197,7 +201,7 @@ public static class StudyConnectClubSeedData
         {
             election.ThoiGianBatDau = DateTime.Now.AddDays(-1);
             election.ThoiGianKetThuc = DateTime.Now.AddDays(14);
-            election.TrangThai = "Đang diễn ra";
+            election.TrangThai = "Đang đề cử";
         }
 
         var members = await context.ThanhVienClbs

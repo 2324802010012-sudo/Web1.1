@@ -32,6 +32,7 @@ if (app.Environment.IsDevelopment())
 {
     try
     {
+        await StudyConnectSchemaCompatibility.EnsureCompatibleAsync(app.Services);
         await StudyConnectSeedData.EnsureSeededAsync(app.Services);
         await StudyConnectClubSeedData.EnsureClubWorkflowSeededAsync(app.Services);
     }

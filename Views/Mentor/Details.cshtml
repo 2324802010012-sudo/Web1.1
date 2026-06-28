@@ -85,7 +85,7 @@
 
                 <div class="flow-actions">
                     <a class="btn btn-light" asp-action="Index" asp-fragment="yeu-cau-ghep-noi">Quay lại</a>
-                    @if (Model.TrangThai == "Đề xuất")
+                    @if (Model.TrangThai == "Đề xuất" || Model.TrangThai == "Đã gửi yêu cầu")
                     {
                         <form asp-action="RejectMatch" asp-route-id="@Model.MaGhepNoi" method="post"><button class="btn btn-light" type="submit">Từ chối</button></form>
                         <form asp-action="AcceptMatch" asp-route-id="@Model.MaGhepNoi" method="post"><button class="btn btn-primary" type="submit">Chấp nhận</button></form>

@@ -18,6 +18,8 @@ public partial class DanhGiaHuongDan
 
     public int MaGhepNoi { get; set; }
 
+    public int? MaLichHoc { get; set; }
+
     public int? SoSao { get; set; }
 
     public string? NhanXet { get; set; }

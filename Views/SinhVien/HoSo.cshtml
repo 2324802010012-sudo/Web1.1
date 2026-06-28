@@ -23,6 +23,12 @@
     var presetValues = days.SelectMany(day => timeSlots.Select(slot => $"{day.Value}|{slot.Start}|{slot.End}")).ToHashSet();
     var customSlots = Model.LichRanhDaChon.Where(value => !presetValues.Contains(value)).Distinct().ToList();
     var studyHistory = ViewBag.StudyHistory as List<StudyConnect.Models.LichHoc> ?? [];
+    var selectedDays = Model.LichRanhDaChon
+        .Select(value => value.Split('|').FirstOrDefault())
+        .Where(value => !string.IsNullOrWhiteSpace(value))
+        .Distinct()
+        .Count();
+    var completedHistoryCount = studyHistory.Count(session => session.TrangThai == "Đã học" || session.TrangThai == "Đã hoàn thành" || session.BaoCaoBuoiHoc != null);
 
     string SlotLabel(string value)
     {
@@ -54,6 +60,34 @@
             </div>
         </header>
 
+        <section class="flow-card profile-hero-card">
+            <div class="profile-hero-copy">
+                <p class="eyebrow">Hồ sơ cá nhân hóa</p>
+                <h2>Tối ưu hồ sơ để mentor phù hợp xuất hiện đúng lúc</h2>
+                <p class="profile-hero-text">Một hồ sơ rõ ràng giúp hệ thống ghép nối nhanh hơn, đồng thời tạo cảm giác chuyên nghiệp khi bạn cần hỗ trợ học tập 1-1.</p>
+                <div class="profile-hero-pills">
+                    <span>Chuyên ngành</span>
+                    <span>Kỹ năng</span>
+                    <span>Lịch rảnh</span>
+                    <span>Lịch sử học</span>
+                </div>
+            </div>
+            <div class="profile-hero-stats">
+                <article>
+                    <strong>@Model.LichRanhDaChon.Count</strong>
+                    <span>Khung rảnh đã chọn</span>
+                </article>
+                <article>
+                    <strong>@selectedDays</strong>
+                    <span>Ngày có lịch học</span>
+                </article>
+                <article>
+                    <strong>@studyHistory.Count</strong>
+                    <span>Buổi học đã lưu</span>
+                </article>
+            </div>
+        </section>
+
         @if (TempData["InfoMessage"] is string info)
         {
             <div class="flow-alert">@info</div>
@@ -69,7 +103,10 @@
 
         <form asp-action="HoSo" method="post" class="flow-card profile-update-card" novalidate>
             <input type="hidden" asp-for="ReturnUrl" />
-            <div asp-validation-summary="All" class="alert error"></div>
+            @if (ViewData.ModelState.ErrorCount > 0)
+            {
+                <div asp-validation-summary="All" class="alert error"></div>
+            }
 
             <div class="flow-section-title"><span>1</span><h2>Thông tin học tập</h2></div>
             <div class="request-grid two">
@@ -162,10 +199,16 @@
         </form>
 
         <section class="flow-card student-history-card" id="lich-su-hoc">
-            <div class="flow-section-title"><span>4</span><h2>Lịch sử học 1-1</h2></div>
+            <div class="history-card-head">
+                <div class="flow-section-title"><span>4</span><h2>Lịch sử học 1-1</h2></div>
+                <span class="history-card-badge">@completedHistoryCount / @studyHistory.Count hoàn thành</span>
+            </div>
             @if (!studyHistory.Any())
             {
-                <p class="empty-text">Bạn chưa có buổi học nào. Sau khi ghép nối và lên lịch, lịch sử học sẽ hiển thị tại đây.</p>
+                <div class="empty-state compact">
+                    <strong>Chưa có buổi học nào</strong>
+                    <p>Sau khi ghép nối và lên lịch, lịch sử học sẽ hiển thị tại đây để bạn theo dõi tiến độ.</p>
+                </div>
             }
             else
             {
@@ -174,7 +217,7 @@
                     {
                         var request = session.MaGhepNoiNavigation.MaYeuCauNavigation;
                         var mentor = session.MaGhepNoiNavigation.MaHuongDanNavigation;
-                        var completed = session.TrangThai == "Đã hoàn thành" || session.BaoCaoBuoiHoc != null;
+                        var completed = session.TrangThai == "Đã học" || session.TrangThai == "Đã hoàn thành" || session.BaoCaoBuoiHoc != null;
                         <article>
                             <time>
                                 <strong>@session.NgayHoc.ToString("dd/MM")</strong>

@@ -1,0 +1,63 @@
+@model IEnumerable<StudyConnect.Models.LinhVucHocTap>
+
+@{
+    ViewData["Title"] = "Danh mục lĩnh vực";
+}
+
+<main class="admin-page">
+    <header class="page-heading">
+        <div>
+            <p class="eyebrow">Dữ liệu nền học 1-1</p>
+            <h1>Danh mục lĩnh vực học tập</h1>
+            <p class="muted-copy">Lĩnh vực được dùng cho yêu cầu hỗ trợ, chuyên môn mentor, đăng ký mentor và bộ gợi ý.</p>
+        </div>
+        <div class="row-actions">
+            <a class="btn btn-light" asp-controller="Admin" asp-action="Index">Dashboard admin</a>
+            <a class="btn btn-primary" asp-action="Create">Thêm lĩnh vực</a>
+        </div>
+    </header>
+
+    @if (TempData["SuccessMessage"] is string success)
+    {
+        <div class="alert success">@success</div>
+    }
+
+    <section class="role-stats admin-system-stats">
+        <article><small>Đang hoạt động</small><strong>@ViewBag.ActiveCount</strong><span>Có thể chọn khi tạo yêu cầu</span></article>
+        <article><small>Tạm ẩn</small><strong>@ViewBag.HiddenCount</strong><span>Giữ lịch sử dữ liệu</span></article>
+        <article><small>Chuyên môn mentor</small><strong>@ViewBag.MentorSpecialtyCount</strong><span>Bản ghi kỹ năng</span></article>
+        <article><small>Yêu cầu học 1-1</small><strong>@ViewBag.RequestCount</strong><span>Nhu cầu sinh viên</span></article>
+    </section>
+
+    <section class="table-card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Lĩnh vực</th>
+                    <th>Mô tả</th>
+                    <th>Mentor</th>
+                    <th>Yêu cầu</th>
+                    <th>Trạng thái</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var field in Model)
+                {
+                    <tr>
+                        <td><strong>@field.TenLinhVuc</strong></td>
+                        <td>@(string.IsNullOrWhiteSpace(field.MoTa) ? "Chưa có mô tả." : field.MoTa)</td>
+                        <td>@field.ChuyenMonNguoiHuongDans.Count</td>
+                        <td>@field.YeuCauHoTroHocTaps.Count</td>
+                        <td><span class="role-badge">@(field.TrangThai ?? "Hoạt động")</span></td>
+                        <td class="table-actions">
+                            <a asp-action="Details" asp-route-id="@field.MaLinhVuc">Chi tiết</a>
+                            <a asp-action="Edit" asp-route-id="@field.MaLinhVuc">Sửa</a>
+                            <a class="danger" asp-action="Delete" asp-route-id="@field.MaLinhVuc">Ẩn / xóa</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </section>
+</main>

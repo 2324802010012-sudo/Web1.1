@@ -1,77 +1,67 @@
 @model IEnumerable<StudyConnect.Models.CauLacBo>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Quản lý câu lạc bộ";
 }
 
-<h1>Index</h1>
+<main class="admin-page">
+    <header class="page-heading">
+        <div>
+            <p class="eyebrow">Cộng đồng CLB</p>
+            <h1>Quản lý câu lạc bộ</h1>
+            <p class="muted-copy">Theo dõi CLB, thành viên, hoạt động, tài liệu và các đợt bầu Phó chủ nhiệm.</p>
+        </div>
+        <div class="row-actions">
+            <a class="btn btn-light" asp-controller="Admin" asp-action="Index">Dashboard admin</a>
+            <a class="btn btn-primary" asp-action="Create">Thêm CLB</a>
+        </div>
+    </header>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.TenClb)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.MoTa)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.NgayThanhLap)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.TrangThai)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.DotDeCuPhoChuNhiems)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.HoatDongClbs)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.TaiLieuClbs)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ThanhVienClbs)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(model => item.TenClb)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.MoTa)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.NgayThanhLap)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.TrangThai)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.DotDeCuPhoChuNhiems)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.HoatDongClbs)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.TaiLieuClbs)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.ThanhVienClbs)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.MaClb">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.MaClb">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.MaClb">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+    @if (TempData["SuccessMessage"] is string success)
+    {
+        <div class="alert success">@success</div>
+    }
+
+    <section class="role-stats admin-system-stats">
+        <article><small>CLB hoạt động</small><strong>@ViewBag.ActiveClubs</strong><span>Đang mở cộng đồng</span></article>
+        <article><small>Thành viên</small><strong>@ViewBag.TotalMembers</strong><span>Đang hoạt động</span></article>
+        <article><small>Hoạt động</small><strong>@ViewBag.TotalActivities</strong><span>Sự kiện / bài đăng</span></article>
+        <article><small>Tài liệu</small><strong>@ViewBag.TotalDocuments</strong><span>Tệp học tập CLB</span></article>
+    </section>
+
+    <section class="table-card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>CLB</th>
+                    <th>Mô tả</th>
+                    <th>Ngày thành lập</th>
+                    <th>Thành viên</th>
+                    <th>Nội dung</th>
+                    <th>Trạng thái</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var club in Model)
+                {
+                    var memberCount = club.ThanhVienClbs.Count(t => t.TrangThai == null || t.TrangThai == "Hoạt động");
+                    var contentCount = club.HoatDongClbs.Count + club.TaiLieuClbs.Count;
+                    <tr>
+                        <td><strong>@club.TenClb</strong></td>
+                        <td>@(string.IsNullOrWhiteSpace(club.MoTa) ? "Chưa có mô tả." : club.MoTa)</td>
+                        <td>@(club.NgayThanhLap?.ToString("dd/MM/yyyy") ?? "-")</td>
+                        <td>@memberCount</td>
+                        <td>@contentCount mục</td>
+                        <td><span class="role-badge">@((club.TrangThai ?? "Hoạt động"))</span></td>
+                        <td class="table-actions">
+                            <a asp-action="Details" asp-route-id="@club.MaClb">Chi tiết</a>
+                            <a asp-action="Edit" asp-route-id="@club.MaClb">Sửa</a>
+                            <a class="danger" asp-action="Delete" asp-route-id="@club.MaClb">Tạm dừng / xóa</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </section>
+</main>

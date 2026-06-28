@@ -4,7 +4,7 @@
     var mentors = ViewBag.MentorGoiY as List<StudyConnect.ViewModels.MentorSuggestionViewModel> ?? [];
     var matches = Model.GhepNoiHocTaps.OrderByDescending(g => g.NgayGhep).ToList();
     var hasMentorSuggestion = matches.Any();
-    var hasAcceptedMatch = matches.Any(g => g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch" || g.TrangThai == "Chờ sinh viên đánh giá" || g.TrangThai == "Hoàn thành");
+    var hasAcceptedMatch = matches.Any(g => g.TrangThai == "Mentor chấp nhận" || g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch" || g.TrangThai == "Hoàn thành");
     var hasSchedule = matches.SelectMany(g => g.LichHocs).Any();
 }
 
@@ -95,7 +95,7 @@
                                     }
                                     <footer>
                                         <a class="btn btn-light" asp-controller="Home" asp-action="MentorDetail" asp-route-id="@match.MaHuongDan">Xem mentor</a>
-                                        @if (match.TrangThai == "Mentor đã chấp nhận" || match.TrangThai == "Đã lên lịch")
+                                        @if (match.TrangThai == "Mentor chấp nhận" || match.TrangThai == "Mentor đã chấp nhận" || match.TrangThai == "Đã lên lịch")
                                         {
                                             <a class="btn btn-light" asp-action="Schedule" asp-route-id="@match.MaGhepNoi">Lên lịch học</a>
                                         }
@@ -143,6 +143,13 @@
                                             {
                                                 <span>@reason</span>
                                             }
+                                        </div>
+                                        <div class="shared-mini-slots score-mini">
+                                            <span>Chuyên môn @mentor.ChuyenMonScore.ToString("0")</span>
+                                            <span>Lịch @mentor.LichRanhScore.ToString("0")</span>
+                                            <span>Uy tín @mentor.DiemUyTinScore.ToString("0")</span>
+                                            <span>Đánh giá @mentor.DanhGiaScore.ToString("0")</span>
+                                            <span>Tương đồng @mentor.TuongDongScore.ToString("0")</span>
                                         </div>
                                         @if (mentor.LichRanhChung.Count > 0)
                                         {

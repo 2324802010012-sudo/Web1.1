@@ -50,13 +50,13 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
             .ToList();
 
         ViewBag.UpcomingSchedules = schedules
-            .Where(l => l.NgayHoc >= today && l.TrangThai != "Đã hoàn thành")
+            .Where(l => l.NgayHoc >= today && l.TrangThai != "Đã học" && l.TrangThai != "Đã hoàn thành")
             .Take(6)
             .ToList();
-        ViewBag.CompletedScheduleCount = schedules.Count(l => l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
+        ViewBag.CompletedScheduleCount = schedules.Count(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
         ViewBag.WaitingScheduleCount = requests
             .SelectMany(y => y.GhepNoiHocTaps)
-            .Count(g => (g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch") && !g.LichHocs.Any());
+            .Count(g => (g.TrangThai == "Mentor chấp nhận" || g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch") && !g.LichHocs.Any());
         ViewBag.WaitingReportCount = schedules.Count(l => l.NgayHoc < today && l.BaoCaoBuoiHoc == null);
         ViewBag.WaitingReviewCount = requests
             .SelectMany(y => y.GhepNoiHocTaps)
@@ -123,7 +123,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
             MoTaVanDe = BuildProblemDescription(model),
             MucTieu = $"{model.TieuDe.Trim()} | Chủ đề: {model.ChuDeCongNghe.Trim()}",
             MucDoCanHoTro = model.MucDoCanHoTro,
-            TrangThai = selectedMentor == null ? "Đang chờ" : "Đang ghép nối",
+            TrangThai = selectedMentor == null ? "Đang chờ" : "Đã gợi ý",
             NgayTao = DateTime.Now
         };
 
@@ -132,12 +132,17 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
 
         if (selectedMentor != null)
         {
+            var score = AnalyzeMentor(selectedMentor, model.MaLinhVuc, BuildDraftRequestText(model), sinhVienProfile);
             _context.GhepNoiHocTaps.Add(new GhepNoiHocTap
             {
                 MaYeuCau = request.MaYeuCau,
                 MaHuongDan = selectedMentor.MaHuongDan,
-                DiemPhuHop = AnalyzeMentor(selectedMentor, model.MaLinhVuc, BuildDraftRequestText(model), sinhVienProfile).Total,
-                TrangThai = "Đề xuất",
+                ChuyenMonScore = score.ChuyenMonScore,
+                LichRanhScore = score.LichRanhScore,
+                DiemUyTinScore = score.DiemUyTinScore,
+                DanhGiaScore = score.DanhGiaScore,
+                TuongDongScore = score.TuongDongScore,
+                TrangThai = "Đã gửi yêu cầu",
                 NgayGhep = DateTime.Now
             });
             await _context.SaveChangesAsync();
@@ -204,15 +209,20 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
             .AnyAsync(g => g.MaYeuCau == yeuCauId && g.MaHuongDan == mentorId);
         if (!exists)
         {
+            var score = AnalyzeMentor(mentor, request, request.MaSinhVienNavigation);
             _context.GhepNoiHocTaps.Add(new GhepNoiHocTap
             {
                 MaYeuCau = yeuCauId,
                 MaHuongDan = mentorId,
-                DiemPhuHop = AnalyzeMentor(mentor, request, request.MaSinhVienNavigation).Total,
-                TrangThai = "Đề xuất",
+                ChuyenMonScore = score.ChuyenMonScore,
+                LichRanhScore = score.LichRanhScore,
+                DiemUyTinScore = score.DiemUyTinScore,
+                DanhGiaScore = score.DanhGiaScore,
+                TuongDongScore = score.TuongDongScore,
+                TrangThai = "Đã gửi yêu cầu",
                 NgayGhep = DateTime.Now
             });
-            request.TrangThai = "Đang ghép nối";
+            request.TrangThai = "Đã gợi ý";
             await _context.SaveChangesAsync();
             TempData["SuccessMessage"] = $"Đã gửi đề xuất ghép nối tới mentor {mentor.MaTaiKhoanNavigation.HoTen}.";
         }
@@ -347,7 +357,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         }
 
         match.TrangThai = "Đã lên lịch";
-        match.MaYeuCauNavigation.TrangThai = "Đã lên lịch";
+        match.MaYeuCauNavigation.TrangThai = "Đang học";
         await _context.SaveChangesAsync();
 
         TempData["SuccessMessage"] = newSlots.Count == 1
@@ -391,6 +401,17 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         var sinhVien = await CurrentSinhVienAsync();
         if (sinhVien == null) return RedirectToAction("HoSo", "SinhVien");
 
+        var reportedSession = match.LichHocs
+            .Where(l => l.BaoCaoBuoiHoc != null)
+            .OrderByDescending(l => l.NgayHoc)
+            .ThenByDescending(l => l.GioBatDau)
+            .FirstOrDefault();
+
+        if (reportedSession == null)
+        {
+            ModelState.AddModelError(string.Empty, "Chưa có buổi học nào có báo cáo để đánh giá.");
+        }
+
         if (await _context.DanhGiaHuongDans.AnyAsync(d => d.MaGhepNoi == model.MaGhepNoi && d.MaSinhVien == sinhVien.MaSinhVien))
         {
             ModelState.AddModelError(string.Empty, "Bạn đã đánh giá ghép nối này.");
@@ -405,6 +426,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         _context.DanhGiaHuongDans.Add(new DanhGiaHuongDan
         {
             MaGhepNoi = match.MaGhepNoi,
+            MaLichHoc = reportedSession!.MaLichHoc,
             MaHuongDan = match.MaHuongDan,
             MaSinhVien = sinhVien.MaSinhVien,
             SoSao = model.SoSao,
@@ -483,7 +505,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
 
     private static bool CanStudentSchedule(GhepNoiHocTap match)
     {
-        return match.TrangThai == "Mentor đã chấp nhận" || match.TrangThai == "Đã lên lịch";
+        return match.TrangThai == "Mentor chấp nhận" || match.TrangThai == "Mentor đã chấp nhận" || match.TrangThai == "Đã lên lịch";
     }
 
     private static bool CanStudentEvaluate(GhepNoiHocTap match)
@@ -565,8 +587,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         {
             "Cơ bản",
             "Trung bình",
-            "Khó",
-            "Cần hỗ trợ gấp"
+            "Nâng cao"
         }.Select(level => new SelectListItem(level, level));
 
         var selectedFieldId = model.MaLinhVuc != 0 ? model.MaLinhVuc : linhVuc.FirstOrDefault()?.MaLinhVuc ?? 0;
@@ -598,7 +619,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
                     .ThenInclude(l => l.BaoCaoBuoiHoc)
             .Include(m => m.DanhGiaHuongDans)
             .Where(m => m.TrangThai == null || m.TrangThai == "Hoạt động")
-            .Where(m => m.ChuyenMonNguoiHuongDans.Any())
+            .Where(m => m.ChuyenMonNguoiHuongDans.Any(c => c.MaLinhVuc == maLinhVuc))
             .ToListAsync();
 
         return mentors
@@ -621,6 +642,11 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
                 DiemDanhGia = CalculateMentorQuality(x.Mentor).AverageRating,
                 SoLuotDanhGia = CalculateMentorQuality(x.Mentor).ReviewCount,
                 DiemPhuHop = x.Score.Total,
+                ChuyenMonScore = x.Score.ChuyenMonScore,
+                LichRanhScore = x.Score.LichRanhScore,
+                DiemUyTinScore = x.Score.DiemUyTinScore,
+                DanhGiaScore = x.Score.DanhGiaScore,
+                TuongDongScore = x.Score.TuongDongScore,
                 TaiHienTai = x.Score.ActiveLoad,
                 LyDoGoiY = x.Score.Reasons,
                 LichRanhChung = BuildSharedSlots(sinhVien, x.Mentor)
@@ -638,8 +664,9 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
     {
         var reasons = new List<string>();
         var specialty = mentor.ChuyenMonNguoiHuongDans.FirstOrDefault(c => c.MaLinhVuc == maLinhVuc);
-        var specialtyScore = specialty == null ? 8m : 28m + Math.Min(7m, (specialty.MucDoThanhThao ?? 0) / 2m);
-        if (specialty != null) reasons.Add("Đúng lĩnh vực chuyên môn");
+        var chuyenMonScore = specialty == null ? 0m : NormalizeScore100(specialty.MucDoThanhThao ?? 0);
+        if (chuyenMonScore >= 80m) reasons.Add("Đúng lĩnh vực và chuyên môn mạnh");
+        else if (specialty != null) reasons.Add("Có chuyên môn cùng lĩnh vực");
 
         var keywords = BuildKeywords(
             requestText,
@@ -649,41 +676,57 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         var mentorText = string.Join(" ", mentor.ChuyenMonNguoiHuongDans.Select(c =>
             $"{c.MaLinhVucNavigation.TenLinhVuc} {c.MoTaKinhNghiem}")) + $" {mentor.MaTaiKhoanNavigation.HoTen}";
         var matchedKeywords = keywords.Count(k => ContainsKeyword(mentorText, k));
-        var keywordScore = Math.Min(18m, matchedKeywords * 3m);
         if (matchedKeywords > 0) reasons.Add($"Trùng {matchedKeywords} từ khóa nhu cầu học");
 
         var sharedSlots = BuildSharedSlots(sinhVien, mentor);
-        var scheduleScore = Math.Min(16m, sharedSlots.Count * 4m);
+        var lichRanhScore = sharedSlots.Count > 0 ? 100m : 30m;
         if (sharedSlots.Count > 0) reasons.Add($"Có {sharedSlots.Count} khung lịch rảnh chung");
 
         var quality = CalculateMentorQuality(mentor);
-        var ratingScore = Math.Min(12m, quality.AverageRating / 5m * 12m);
-        if (quality.AverageRating >= 4.5m) reasons.Add("Đánh giá tốt từ sinh viên");
+        var mentorRating = quality.AverageRating > 0 ? quality.AverageRating : mentor.DiemDanhGia ?? 0m;
+        var danhGiaScore = mentorRating <= 5m ? mentorRating * 20m : mentorRating;
+        danhGiaScore = Math.Clamp(Math.Round(danhGiaScore, 2), 0m, 100m);
+        if (danhGiaScore >= 85m) reasons.Add("Đánh giá tốt từ sinh viên");
 
-        var reputationScore = Math.Min(12m, quality.Reputation / 10m * 12m);
-        if (quality.Reputation >= 8m) reasons.Add("Điểm uy tín cao");
+        var diemUyTinScore = NormalizeScore100(mentor.DiemUyTin ?? quality.Reputation);
+        if (diemUyTinScore >= 80m) reasons.Add("Điểm uy tín cao");
 
         var completedSessions = mentor.GhepNoiHocTaps
             .SelectMany(g => g.LichHocs)
-            .Count(l => l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
-        var experienceScore = Math.Min(7m, completedSessions * 0.35m + quality.ReviewCount * 0.04m);
+            .Count(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
         if (completedSessions > 0) reasons.Add("Có lịch sử hỗ trợ học tập");
 
-        var clbBonus = mentor.MaTaiKhoanNavigation.SinhVien?.ThanhVienClbs.Any() == true ? 3m : 0m;
-        if (clbBonus > 0) reasons.Add("Có dữ liệu hoạt động CLB");
+        var keywordDenominator = Math.Min(Math.Max(keywords.Count, 1), 10);
+        var keywordScore = keywords.Count == 0 ? 0m : Math.Min(70m, matchedKeywords / (decimal)keywordDenominator * 70m);
+        var historyScore = Math.Min(30m, completedSessions * 5m + quality.ReviewCount * 0.5m);
+        var tuongDongScore = Math.Clamp(Math.Round(keywordScore + historyScore, 2), 0m, 100m);
+
+        var hasClubData = mentor.MaTaiKhoanNavigation.SinhVien?.ThanhVienClbs.Any(t => t.TrangThai == null || t.TrangThai == "Hoạt động") == true;
+        if (hasClubData) reasons.Add("Có dữ liệu hoạt động CLB");
 
         var activeLoad = mentor.GhepNoiHocTaps.Count(g =>
             g.TrangThai != "Hoàn thành"
             && g.TrangThai != "Mentor từ chối"
             && g.TrangThai != "Đã hủy");
-        var loadPenalty = Math.Min(12m, activeLoad * 2m);
         if (activeLoad <= 2) reasons.Add("Tải ghép nối hiện tại phù hợp");
 
-        var total = specialtyScore + keywordScore + scheduleScore + ratingScore + reputationScore + experienceScore + clbBonus - loadPenalty;
-        total = Math.Clamp(Math.Round(total, 0), 0, 99);
+        var total = 0.35m * chuyenMonScore
+            + 0.20m * lichRanhScore
+            + 0.20m * diemUyTinScore
+            + 0.15m * danhGiaScore
+            + 0.10m * tuongDongScore;
+        total = Math.Clamp(Math.Round(total, 0), 0, 100);
 
         if (reasons.Count == 0) reasons.Add("Mentor đang hoạt động và có hồ sơ chuyên môn");
-        return new MentorFitScore(total, activeLoad, reasons.Take(4).ToList());
+        return new MentorFitScore(
+            total,
+            activeLoad,
+            reasons.Take(4).ToList(),
+            chuyenMonScore,
+            lichRanhScore,
+            diemUyTinScore,
+            danhGiaScore,
+            tuongDongScore);
     }
 
     private static List<string> BuildSharedSlots(GhepNoiHocTap match)
@@ -824,6 +867,13 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         return text.ToLowerInvariant().Contains(keyword);
     }
 
+    private static decimal NormalizeScore100(decimal value)
+    {
+        if (value <= 0m) return 0m;
+        var normalized = value <= 5m ? value * 20m : value <= 10m ? value * 10m : value;
+        return Math.Clamp(Math.Round(normalized, 2), 0m, 100m);
+    }
+
     private static readonly HashSet<string> StopWords = new(StringComparer.OrdinalIgnoreCase)
     {
         "can", "cần", "hoc", "học", "ho", "hỗ", "tro", "trợ", "mentor", "minh", "mình",
@@ -831,7 +881,15 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         "dang", "đang", "phan", "phần", "noi", "nội", "dung", "muc", "mức", "do", "độ"
     };
 
-    private sealed record MentorFitScore(decimal Total, int ActiveLoad, List<string> Reasons);
+    private sealed record MentorFitScore(
+        decimal Total,
+        int ActiveLoad,
+        List<string> Reasons,
+        decimal ChuyenMonScore,
+        decimal LichRanhScore,
+        decimal DiemUyTinScore,
+        decimal DanhGiaScore,
+        decimal TuongDongScore);
 
     private static MentorQualityMetrics CalculateMentorQuality(NguoiHuongDan mentor)
     {
@@ -853,7 +911,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         var averageRating = reviewCount == 0 ? 0m : Math.Round((decimal)ratings.Average(), 2);
         var completedSessions = mentor.GhepNoiHocTaps
             .SelectMany(g => g.LichHocs)
-            .Count(l => l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
+            .Count(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
         var reportCount = mentor.GhepNoiHocTaps
             .SelectMany(g => g.LichHocs)
             .Count(l => l.BaoCaoBuoiHoc != null);

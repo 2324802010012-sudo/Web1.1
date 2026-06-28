@@ -15,13 +15,17 @@ public partial class NguoiHuongDan
 
     public int MaTaiKhoan { get; set; }
 
+    public int? MaSinhVien { get; set; }
+
+    public int? MaGiangVien { get; set; }
+
     [StringLength(50)]
     public string LoaiNguoiHuongDan { get; set; } = null!;
 
     [Column(TypeName = "decimal(5, 2)")]
     public decimal? DiemUyTin { get; set; }
 
-    [Column(TypeName = "decimal(3, 2)")]
+    [Column(TypeName = "decimal(5, 2)")]
     public decimal? DiemDanhGia { get; set; }
 
     public int? SoLuotDanhGia { get; set; }

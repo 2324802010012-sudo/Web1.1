@@ -1,0 +1,31 @@
+@model StudyConnect.Models.LinhVucHocTap
+
+@{
+    ViewData["Title"] = "Ẩn hoặc xóa lĩnh vực";
+    var relatedCount = Model.ChuyenMonNguoiHuongDans.Count + Model.YeuCauHoTroHocTaps.Count + Model.DangKyHuongDans.Count;
+}
+
+<main class="admin-page narrow">
+    <header class="page-heading">
+        <div>
+            <p class="eyebrow">Dữ liệu nền học 1-1</p>
+            <h1>Ẩn hoặc xóa lĩnh vực</h1>
+            <p class="muted-copy">Nếu lĩnh vực đã có dữ liệu, hệ thống sẽ chuyển sang Tạm ẩn để giữ lịch sử gợi ý, yêu cầu và đăng ký mentor.</p>
+        </div>
+    </header>
+
+    <section class="detail-card danger-zone">
+        <h2>@Model.TenLinhVuc</h2>
+        <dl>
+            <dt>Trạng thái hiện tại</dt><dd>@(Model.TrangThai ?? "Hoạt động")</dd>
+            <dt>Dữ liệu liên quan</dt><dd>@relatedCount mục</dd>
+            <dt>Hành động</dt><dd>@(relatedCount > 0 ? "Chuyển sang Tạm ẩn" : "Xóa khỏi hệ thống")</dd>
+        </dl>
+
+        <form asp-action="Delete" method="post" class="row-actions">
+            <input type="hidden" name="id" value="@Model.MaLinhVuc" />
+            <button type="submit" class="btn btn-danger">Xác nhận</button>
+            <a class="btn btn-light" asp-action="Details" asp-route-id="@Model.MaLinhVuc">Quay lại chi tiết</a>
+        </form>
+    </section>
+</main>

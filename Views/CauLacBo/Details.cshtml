@@ -1,73 +1,96 @@
 @model StudyConnect.Models.CauLacBo
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Chi tiết CLB";
+    var activeMembers = Model.ThanhVienClbs
+        .Where(t => t.TrangThai == null || t.TrangThai == "Hoạt động")
+        .OrderBy(t => t.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen)
+        .ToList();
 }
 
-<h1>Details</h1>
+<main class="admin-page">
+    <header class="page-heading">
+        <div>
+            <p class="eyebrow">Cộng đồng CLB</p>
+            <h1>@Model.TenClb</h1>
+            <p class="muted-copy">@((string.IsNullOrWhiteSpace(Model.MoTa) ? "Chưa có mô tả." : Model.MoTa))</p>
+        </div>
+        <div class="row-actions">
+            <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.MaClb">Cập nhật</a>
+            <a class="btn btn-light" asp-action="Index">Danh sách</a>
+        </div>
+    </header>
 
-<div>
-    <h4>CauLacBo</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TenClb)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TenClb)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.MoTa)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.MoTa)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.NgayThanhLap)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.NgayThanhLap)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TrangThai)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TrangThai)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.DotDeCuPhoChuNhiems)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.DotDeCuPhoChuNhiems)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.HoatDongClbs)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.HoatDongClbs)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TaiLieuClbs)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TaiLieuClbs)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ThanhVienClbs)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ThanhVienClbs)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.MaClb">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+    <section class="role-stats admin-system-stats">
+        <article><small>Thành viên</small><strong>@activeMembers.Count</strong><span>Đang hoạt động</span></article>
+        <article><small>Hoạt động</small><strong>@Model.HoatDongClbs.Count</strong><span>Bài đăng / sự kiện</span></article>
+        <article><small>Tài liệu</small><strong>@Model.TaiLieuClbs.Count</strong><span>Đã chia sẻ</span></article>
+        <article><small>Bầu chọn</small><strong>@Model.DotDeCuPhoChuNhiems.Count</strong><span>Đợt Phó chủ nhiệm</span></article>
+    </section>
+
+    <section class="detail-card">
+        <dl>
+            <dt>Trạng thái</dt><dd>@(Model.TrangThai ?? "Hoạt động")</dd>
+            <dt>Ngày thành lập</dt><dd>@(Model.NgayThanhLap?.ToString("dd/MM/yyyy") ?? "-")</dd>
+            <dt>Mã CLB</dt><dd>@Model.MaClb</dd>
+        </dl>
+    </section>
+
+    <section class="role-panel">
+        <div class="role-panel-head"><h2>Thành viên tiêu biểu</h2><strong>@activeMembers.Count</strong></div>
+        <div class="manager-member-list">
+            @if (!activeMembers.Any())
+            {
+                <p class="empty-text">CLB chưa có thành viên đang hoạt động.</p>
+            }
+            @foreach (var member in activeMembers.Take(8))
+            {
+                <div class="manager-member-row">
+                    <div>
+                        <strong>@member.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen</strong>
+                        <small>@member.MaSinhVienNavigation.Mssv</small>
+                    </div>
+                    <span>@(member.VaiTroClb ?? "Thành viên")</span>
+                    <span>@(member.NgayThamGia?.ToString("dd/MM/yyyy") ?? "-")</span>
+                </div>
+            }
+        </div>
+    </section>
+
+    <section class="mentor-workspace-grid">
+        <article class="role-panel">
+            <div class="role-panel-head"><h2>Hoạt động gần đây</h2><strong>@Model.HoatDongClbs.Count</strong></div>
+            <div class="mentor-session-list">
+                @if (!Model.HoatDongClbs.Any())
+                {
+                    <div><time>--</time><div><strong>Chưa có hoạt động</strong><small>Hoạt động CLB sẽ hiển thị tại đây.</small></div></div>
+                }
+                @foreach (var activity in Model.HoatDongClbs.OrderByDescending(h => h.NgayDang).Take(5))
+                {
+                    <div>
+                        <time>@(activity.NgayDang?.ToString("dd/MM") ?? "--")</time>
+                        <div><strong>@activity.TieuDe</strong><small>@(activity.DiaDiem ?? "Chưa cập nhật địa điểm")</small></div>
+                    </div>
+                }
+            </div>
+        </article>
+
+        <article class="role-panel">
+            <div class="role-panel-head"><h2>Tài liệu mới</h2><strong>@Model.TaiLieuClbs.Count</strong></div>
+            <div class="mentor-session-list">
+                @if (!Model.TaiLieuClbs.Any())
+                {
+                    <div><time>--</time><div><strong>Chưa có tài liệu</strong><small>Tài liệu CLB sẽ hiển thị tại đây.</small></div></div>
+                }
+                @foreach (var document in Model.TaiLieuClbs.OrderByDescending(t => t.NgayDang).Take(5))
+                {
+                    <div>
+                        <time>@(document.NgayDang?.ToString("dd/MM") ?? "--")</time>
+                        <div><strong>@document.TieuDe</strong><small>@(document.NguoiDangNavigation?.HoTen ?? "Thành viên CLB")</small></div>
+                        <a asp-controller="Clb" asp-action="ViewDocument" asp-route-id="@document.MaTaiLieu">Mở</a>
+                    </div>
+                }
+            </div>
+        </article>
+    </section>
+</main>

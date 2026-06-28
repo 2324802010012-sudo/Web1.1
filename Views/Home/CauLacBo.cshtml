@@ -9,7 +9,7 @@
     bool IsMember(int clbId) => Model.MyMemberships.Any(t => t.MaClb == clbId);
     bool IsElectionOpen(DotDeCuPhoChuNhiem dot)
     {
-        var activeStatus = dot.TrangThai == null || dot.TrangThai == "Hoạt động" || dot.TrangThai == "Đang diễn ra" || dot.TrangThai == "Mở";
+        var activeStatus = dot.TrangThai == null || dot.TrangThai == "Hoạt động" || dot.TrangThai == "Đang đề cử" || dot.TrangThai == "Đang bỏ phiếu" || dot.TrangThai == "Đang diễn ra" || dot.TrangThai == "Mở";
         return activeStatus && dot.ThoiGianBatDau <= now && dot.ThoiGianKetThuc >= now;
     }
 

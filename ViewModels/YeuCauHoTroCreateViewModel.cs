@@ -55,6 +55,16 @@ public class MentorSuggestionViewModel
 
     public decimal DiemPhuHop { get; set; }
 
+    public decimal ChuyenMonScore { get; set; }
+
+    public decimal LichRanhScore { get; set; }
+
+    public decimal DiemUyTinScore { get; set; }
+
+    public decimal DanhGiaScore { get; set; }
+
+    public decimal TuongDongScore { get; set; }
+
     public int TaiHienTai { get; set; }
 
     public List<string> LyDoGoiY { get; set; } = [];

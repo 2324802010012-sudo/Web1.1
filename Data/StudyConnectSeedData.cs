@@ -175,7 +175,7 @@ public static class StudyConnectSeedData
                 MoTaVanDe = "Cần hỗ trợ xây dựng chức năng CRUD, phân quyền và Entity Framework Core.",
                 MucTieu = "Hoàn thành đồ án Web 1-1 với ASP.NET Core MVC",
                 MucDoCanHoTro = "Trung bình",
-                TrangThai = "Đã ghép nối",
+                TrangThai = "Đã ghép",
                 NgayTao = DateTime.Now.AddDays(-14)
             };
 
@@ -186,7 +186,11 @@ public static class StudyConnectSeedData
             {
                 MaYeuCau = request.MaYeuCau,
                 MaHuongDan = mentorId,
-                DiemPhuHop = 92.5m,
+                ChuyenMonScore = 92m,
+                LichRanhScore = 100m,
+                DiemUyTinScore = 88m,
+                DanhGiaScore = 96m,
+                TuongDongScore = 82m,
                 TrangThai = "Hoàn thành",
                 NgayGhep = DateTime.Now.AddDays(-12)
             };
@@ -202,7 +206,7 @@ public static class StudyConnectSeedData
                 GioKetThuc = new TimeOnly(20, 30),
                 HinhThuc = "Online",
                 LinkOnline = "https://meet.studyconnect.local/demo",
-                TrangThai = "Đã hoàn thành"
+                TrangThai = "Đã học"
             };
 
             context.LichHocs.Add(lesson);
@@ -233,6 +237,7 @@ public static class StudyConnectSeedData
                 MaHuongDan = mentorId,
                 MaSinhVien = student.MaSinhVien,
                 MaGhepNoi = match.MaGhepNoi,
+                MaLichHoc = lesson.MaLichHoc,
                 SoSao = 5,
                 NhanXet = "Mentor hướng dẫn dễ hiểu, đưa ví dụ sát đồ án.",
                 NgayDanhGia = DateTime.Now.AddDays(-6)
@@ -288,11 +293,13 @@ public static class StudyConnectSeedData
     {
         var mentor = await context.NguoiHuongDans.FirstOrDefaultAsync(m => m.MaTaiKhoan == account.MaTaiKhoan);
         if (mentor != null) return mentor;
+        var student = await context.SinhViens.FirstAsync(s => s.MaTaiKhoan == account.MaTaiKhoan);
 
         mentor = new NguoiHuongDan
         {
             MaTaiKhoan = account.MaTaiKhoan,
-            LoaiNguoiHuongDan = "Sinh viên mentor",
+            MaSinhVien = student.MaSinhVien,
+            LoaiNguoiHuongDan = "SinhVien",
             DiemUyTin = seed.Reputation,
             DiemDanhGia = seed.Rating,
             SoLuotDanhGia = seed.RatingCount,
@@ -316,7 +323,7 @@ public static class StudyConnectSeedData
         {
             MaClb = club.MaClb,
             MaSinhVien = student.MaSinhVien,
-            VaiTroClb = "Thành viên uy tín",
+            VaiTroClb = "Thành viên",
             NgayThamGia = new DateOnly(2024, 10, 1),
             TrangThai = "Hoạt động"
         });

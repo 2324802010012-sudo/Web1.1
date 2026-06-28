@@ -116,7 +116,7 @@
                     @foreach (var item in requests)
                     {
                         var matches = item.GhepNoiHocTaps?.ToList() ?? [];
-                        var accepted = matches.FirstOrDefault(g => g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch" || g.TrangThai == "Chờ sinh viên đánh giá" || g.TrangThai == "Hoàn thành");
+                        var accepted = matches.FirstOrDefault(g => g.TrangThai == "Mentor chấp nhận" || g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch" || g.TrangThai == "Hoàn thành");
                         var latestSchedule = matches.SelectMany(g => g.LichHocs).OrderByDescending(l => l.NgayHoc).FirstOrDefault();
                         var canEvaluate = accepted?.LichHocs.Any(l => l.BaoCaoBuoiHoc != null) == true && accepted.DanhGiaHuongDans.Count == 0;
                         <article>

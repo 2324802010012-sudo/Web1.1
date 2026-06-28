@@ -29,7 +29,7 @@ public class AdminController : RoleProtectedController
         ViewBag.UserName = CurrentUserName;
         ViewBag.TongTaiKhoan = await _context.TaiKhoans.CountAsync();
         ViewBag.TaiKhoanHoatDong = await _context.TaiKhoans.CountAsync(t => t.TrangThai == null || t.TrangThai == "Hoạt động");
-        ViewBag.TaiKhoanBiKhoa = await _context.TaiKhoans.CountAsync(t => t.TrangThai == "Đã khóa" || t.TrangThai == "Khóa");
+        ViewBag.TaiKhoanBiKhoa = await _context.TaiKhoans.CountAsync(t => t.TrangThai == "Bị khóa" || t.TrangThai == "Đã khóa" || t.TrangThai == "Khóa");
         ViewBag.TongVaiTro = roleStats.Count;
         ViewBag.LinhVuc = await _context.LinhVucHocTaps.CountAsync();
         ViewBag.ThongBao = await _context.ThongBaos.CountAsync();

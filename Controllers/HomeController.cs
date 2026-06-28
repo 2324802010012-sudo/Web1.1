@@ -79,7 +79,7 @@ namespace StudyConnect.Controllers
                 SelectedLinhVucId = linhVucId,
                 Keyword = cleanKeyword,
                 MentorCount = await activeMentorQuery.CountAsync(),
-                CompletedSessionCount = await _context.LichHocs.CountAsync(l => l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null),
+                CompletedSessionCount = await _context.LichHocs.CountAsync(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null),
                 AverageRating = averageRating,
                 LinhVucOptions = fields
                     .Select(l => new SelectListItem(l.TenLinhVuc, l.MaLinhVuc.ToString(), l.MaLinhVuc == linhVucId))
@@ -245,7 +245,7 @@ namespace StudyConnect.Controllers
 
             var completedSessions = mentor.GhepNoiHocTaps
                 .SelectMany(g => g.LichHocs)
-                .Count(l => l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
+                .Count(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
 
             if (completedSessions == 0)
             {
@@ -319,7 +319,7 @@ namespace StudyConnect.Controllers
             var averageRating = reviewCount == 0 ? 0m : Math.Round((decimal)ratings.Average(), 2);
             var completedSessions = mentor.GhepNoiHocTaps
                 .SelectMany(g => g.LichHocs)
-                .Count(l => l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
+                .Count(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
             var reportCount = mentor.GhepNoiHocTaps
                 .SelectMany(g => g.LichHocs)
                 .Count(l => l.BaoCaoBuoiHoc != null);

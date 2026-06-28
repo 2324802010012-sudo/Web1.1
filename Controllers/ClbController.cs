@@ -335,6 +335,8 @@ public class ClbController : RoleProtectedController
         var now = DateTime.Now;
         var activeStatus = dot.TrangThai == null ||
             dot.TrangThai == "Hoạt động" ||
+            dot.TrangThai == "Đang đề cử" ||
+            dot.TrangThai == "Đang bỏ phiếu" ||
             dot.TrangThai == "Đang diễn ra" ||
             dot.TrangThai == "Mở";
 
