@@ -16,6 +16,8 @@ public static class StudyConnectSeedData
 
         await SeedLearningFieldsAsync(context);
         await SeedClubsAsync(context);
+        await SeedAdminAsync(context);
+        await FixDemoPasswordHashesAsync(context);
         var coVanAccount = await SeedAdvisorAsync(context);
         await SeedMentorsAsync(context, coVanAccount);
         await SeedLearningHistoryAsync(context);
@@ -78,6 +80,50 @@ public static class StudyConnectSeedData
         }
 
         await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedAdminAsync(AppDbContext context)
+    {
+        var admin = await EnsureAccountAsync(
+            context,
+            "admin@studyconnect.local",
+            "Quản trị hệ thống",
+            AccountRoles.QuanTri,
+            "0900000000");
+
+        if (admin.VaiTro != AccountRoles.QuanTri || PasswordService.NeedsRehash(admin.MatKhau))
+        {
+            admin.VaiTro = AccountRoles.QuanTri;
+            admin.TrangThai = "Hoạt động";
+            admin.MatKhau = PasswordService.Hash(SeedPassword);
+        }
+
+        var legacySqlAdmin = await context.TaiKhoans.FirstOrDefaultAsync(t => t.Email == "admin@studyconnect.vn");
+        if (legacySqlAdmin != null)
+        {
+            legacySqlAdmin.VaiTro = AccountRoles.QuanTri;
+            legacySqlAdmin.TrangThai = "Hoạt động";
+            legacySqlAdmin.MatKhau = PasswordService.Hash(SeedPassword);
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task FixDemoPasswordHashesAsync(AppDbContext context)
+    {
+        var demoHashAccounts = await context.TaiKhoans
+            .Where(t => t.MatKhau.StartsWith("$2a$demo_hash") || t.MatKhau.StartsWith("$2b$demo_hash"))
+            .ToListAsync();
+
+        foreach (var account in demoHashAccounts)
+        {
+            account.MatKhau = PasswordService.Hash(SeedPassword);
+        }
+
+        if (demoHashAccounts.Count > 0)
+        {
+            await context.SaveChangesAsync();
+        }
     }
 
     private static async Task<TaiKhoan> SeedAdvisorAsync(AppDbContext context)

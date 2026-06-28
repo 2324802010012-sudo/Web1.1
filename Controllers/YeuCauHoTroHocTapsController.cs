@@ -103,6 +103,10 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         {
             ModelState.AddModelError(nameof(model.MentorId), "Mentor đã chọn không còn hoạt động.");
         }
+        else if (selectedMentor != null && BuildSharedSlots(sinhVienProfile, selectedMentor).Count == 0)
+        {
+            ModelState.AddModelError(nameof(model.MentorId), "Mentor đã chọn chưa có lịch rảnh chung với bạn. Vui lòng chọn mentor khác hoặc cập nhật lịch rảnh.");
+        }
 
         if (!await _context.LinhVucHocTaps.AnyAsync(l => l.MaLinhVuc == model.MaLinhVuc))
         {
@@ -182,7 +186,11 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
 
         if (request == null) return NotFound();
 
-        ViewBag.MentorGoiY = await GetMentorSuggestionsAsync(request);
+        var mentorSuggestions = await GetMentorSuggestionsAsync(request);
+        ViewBag.MentorGoiY = mentorSuggestions;
+        ViewBag.MentorGoiYReason = mentorSuggestions.Count == 0
+            ? await BuildNoSuggestionReasonAsync(request)
+            : null;
         return View(request);
     }
 
@@ -204,6 +212,12 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         var mentor = await GetActiveMentorAsync(mentorId);
 
         if (request == null || mentor == null) return NotFound();
+
+        if (BuildSharedSlots(request.MaSinhVienNavigation, mentor).Count == 0)
+        {
+            TempData["SuccessMessage"] = $"Mentor {mentor.MaTaiKhoanNavigation.HoTen} chưa có lịch rảnh chung với bạn. Hãy cập nhật lịch rảnh hoặc chọn mentor khác.";
+            return RedirectToAction(nameof(Details), new { id = yeuCauId });
+        }
 
         var exists = await _context.GhepNoiHocTaps
             .AnyAsync(g => g.MaYeuCau == yeuCauId && g.MaHuongDan == mentorId);
@@ -248,6 +262,12 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         }
 
         var suggestedSlots = BuildSuggestedSlots(match);
+        if (suggestedSlots.Count == 0)
+        {
+            TempData["SuccessMessage"] = "Chưa có lịch rảnh chung giữa bạn và mentor. Vui lòng cập nhật lịch rảnh hoặc trao đổi để mentor cập nhật lịch trước khi lên lịch học.";
+            return RedirectToAction(nameof(Details), new { id = match.MaYeuCau });
+        }
+
         ViewBag.Match = match;
         ViewBag.SharedSlots = BuildSharedSlots(match);
         ViewBag.SuggestedSlots = suggestedSlots;
@@ -282,6 +302,10 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
 
         var sharedSlots = BuildSharedSlots(match);
         var selectedSlots = ParseSelectedSlots(model.SelectedSlots);
+        if (sharedSlots.Count == 0)
+        {
+            ModelState.AddModelError(string.Empty, "Chưa có lịch rảnh chung giữa sinh viên và mentor. Không thể lưu lịch học.");
+        }
 
         if (selectedSlots.Count == 0)
         {
@@ -290,7 +314,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
                 ModelState.AddModelError(nameof(model.GioKetThuc), "Giờ kết thúc phải sau giờ bắt đầu.");
             }
 
-            if (sharedSlots.Count > 0 && !IsInsideSharedAvailability(match, model.NgayHoc, model.GioBatDau, model.GioKetThuc))
+            if (!IsInsideSharedAvailability(match, model.NgayHoc, model.GioBatDau, model.GioKetThuc))
             {
                 ModelState.AddModelError(string.Empty, "Thời gian này chưa nằm trong lịch rảnh chung của sinh viên và mentor.");
             }
@@ -309,7 +333,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
                 continue;
             }
 
-            if (sharedSlots.Count > 0 && !IsInsideSharedAvailability(match, slot.NgayHoc, slot.GioBatDau, slot.GioKetThuc))
+            if (!IsInsideSharedAvailability(match, slot.NgayHoc, slot.GioBatDau, slot.GioKetThuc))
             {
                 ModelState.AddModelError(nameof(model.SelectedSlots), $"Khung {slot.NgayHoc:dd/MM/yyyy} {slot.GioBatDau:hh\\:mm}-{slot.GioKetThuc:hh\\:mm} chưa nằm trong lịch rảnh chung.");
             }
@@ -603,6 +627,36 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         return GetMentorSuggestionsAsync(request.MaLinhVuc, requestText, request.MaSinhVienNavigation);
     }
 
+    private async Task<string> BuildNoSuggestionReasonAsync(YeuCauHoTroHocTap request)
+    {
+        var mentors = await _context.NguoiHuongDans
+            .Include(m => m.MaTaiKhoanNavigation)
+                .ThenInclude(t => t.LichRanhs)
+            .Include(m => m.ChuyenMonNguoiHuongDans)
+                .ThenInclude(c => c.MaLinhVucNavigation)
+            .Include(m => m.GhepNoiHocTaps)
+                .ThenInclude(g => g.LichHocs)
+                    .ThenInclude(l => l.BaoCaoBuoiHoc)
+            .Include(m => m.DanhGiaHuongDans)
+            .Where(m => m.TrangThai == null || m.TrangThai == "Hoạt động")
+            .Where(m => m.ChuyenMonNguoiHuongDans.Any(c => c.MaLinhVuc == request.MaLinhVuc))
+            .ToListAsync();
+
+        if (mentors.Count == 0)
+        {
+            return "Chưa có mentor đang hoạt động cho lĩnh vực này.";
+        }
+
+        var mentorsWithSharedSchedule = mentors
+            .Count(m => BuildSharedSlots(request.MaSinhVienNavigation, m).Count > 0);
+        if (mentorsWithSharedSchedule == 0)
+        {
+            return $"Có {mentors.Count} mentor đúng lĩnh vực, nhưng chưa có lịch rảnh chung với bạn. Hãy cập nhật thêm lịch rảnh hoặc chọn khung giờ trùng với mentor.";
+        }
+
+        return $"Có {mentorsWithSharedSchedule} mentor có lịch rảnh chung, nhưng điểm phù hợp chưa đạt ngưỡng gợi ý. Hãy mô tả rõ hơn công nghệ/vấn đề cần hỗ trợ hoặc cập nhật hồ sơ kỹ năng.";
+    }
+
     private async Task<List<MentorSuggestionViewModel>> GetMentorSuggestionsAsync(int maLinhVuc, string requestText, SinhVien? sinhVien)
     {
         var mentors = await _context.NguoiHuongDans
@@ -624,7 +678,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
 
         return mentors
             .Select(m => new { Mentor = m, Score = AnalyzeMentor(m, maLinhVuc, requestText, sinhVien) })
-            .Where(x => x.Score.Total >= 45)
+            .Where(x => x.Score.Total >= 45 && x.Score.LichRanhScore > 0)
             .OrderByDescending(x => x.Score.Total)
             .ThenByDescending(x => CalculateMentorQuality(x.Mentor).Reputation)
             .ThenByDescending(x => CalculateMentorQuality(x.Mentor).AverageRating)
@@ -679,7 +733,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         if (matchedKeywords > 0) reasons.Add($"Trùng {matchedKeywords} từ khóa nhu cầu học");
 
         var sharedSlots = BuildSharedSlots(sinhVien, mentor);
-        var lichRanhScore = sharedSlots.Count > 0 ? 100m : 30m;
+        var lichRanhScore = sharedSlots.Count > 0 ? 100m : 0m;
         if (sharedSlots.Count > 0) reasons.Add($"Có {sharedSlots.Count} khung lịch rảnh chung");
 
         var quality = CalculateMentorQuality(mentor);

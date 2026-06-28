@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Chi tiết yêu cầu hỗ trợ";
     var mentors = ViewBag.MentorGoiY as List<StudyConnect.ViewModels.MentorSuggestionViewModel> ?? [];
+    var mentorReason = ViewBag.MentorGoiYReason as string;
     var matches = Model.GhepNoiHocTaps.OrderByDescending(g => g.NgayGhep).ToList();
     var hasMentorSuggestion = matches.Any();
     var hasAcceptedMatch = matches.Any(g => g.TrangThai == "Mentor chấp nhận" || g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch" || g.TrangThai == "Hoàn thành");
@@ -125,7 +126,11 @@
                     <h2>Mentor được đề xuất</h2>
                     @if (mentors.Count == 0)
                     {
-                        <p class="empty-note">Chưa có mentor phù hợp cho lĩnh vực này.</p>
+                        <div class="empty-note">
+                            <strong>Chưa có mentor phù hợp để ghép ngay.</strong>
+                            <p>@(mentorReason ?? "Hệ thống chưa tìm thấy mentor đạt đủ điều kiện chuyên môn và lịch rảnh chung.")</p>
+                            <a class="btn btn-light" asp-controller="SinhVien" asp-action="HoSo">Cập nhật lịch rảnh</a>
+                        </div>
                     }
                     else
                     {
