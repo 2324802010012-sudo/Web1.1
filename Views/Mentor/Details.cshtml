@@ -70,7 +70,16 @@
                             <article>
                                 <time>@session.NgayHoc.ToString("dd/MM")</time>
                                 <div><strong>@session.GioBatDau.ToString("HH:mm") - @session.GioKetThuc.ToString("HH:mm")</strong><small>@session.HinhThuc - @session.TrangThai</small></div>
-                                <span>@session.TrangThai</span>
+                                @if (session.TrangThai == "Sắp diễn ra" || session.TrangThai == "Đã lên lịch")
+                                {
+                                    <form asp-action="MarkStudentAbsent" asp-route-id="@session.MaLichHoc" method="post">
+                                        <button class="btn btn-light" type="submit">SV vắng</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span>@session.TrangThai</span>
+                                }
                             </article>
                         }
                     }

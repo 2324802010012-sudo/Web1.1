@@ -137,6 +137,44 @@
             }
         </article>
 
+        <article class="mentor-detail-panel mentor-review-panel">
+            <div class="mentor-review-head">
+                <div>
+                    <h2>Đánh giá từ sinh viên</h2>
+                    <p>@Model.SoLuotDanhGia lượt đánh giá - trung bình @Model.DiemDanhGia.ToString("0.0")/5</p>
+                </div>
+                <strong>@Model.DiemDanhGia.ToString("0.0")/5</strong>
+            </div>
+
+            @if (Model.DanhGiaGanDay.Count == 0)
+            {
+                <p class="empty-note">Mentor chưa có đánh giá công khai từ sinh viên.</p>
+            }
+            else
+            {
+                <div class="mentor-review-list">
+                    @foreach (var review in Model.DanhGiaGanDay)
+                    {
+                        var filledStars = new string('★', review.SoSao);
+                        var emptyStars = new string('☆', Math.Max(0, 5 - review.SoSao));
+                        <article>
+                            <div class="mentor-review-meta">
+                                <div>
+                                    <strong>@review.SinhVien</strong>
+                                    <small>@(review.LinhVuc ?? "Học 1-1") - @(review.NgayDanhGia?.ToString("dd/MM/yyyy") ?? "Chưa rõ ngày")</small>
+                                </div>
+                                <span>@filledStars@emptyStars</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(review.NhanXet))
+                            {
+                                <p>@review.NhanXet</p>
+                            }
+                        </article>
+                    }
+                </div>
+            }
+        </article>
+
         <article class="mentor-detail-panel mentor-connect-panel">
             <h2>Sẵn sàng ghép nối?</h2>
             <p>Để gửi yêu cầu cho mentor này, bạn cần đăng nhập bằng tài khoản sinh viên và hoàn tất hồ sơ gồm kỹ năng, chuyên ngành, mục tiêu học và lịch rảnh.</p>

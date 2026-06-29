@@ -329,6 +329,11 @@ public class CoVanController : RoleProtectedController
 
     private static bool IsCompletedSession(LichHoc schedule)
     {
+        if (schedule.TrangThai == "Sinh viên vắng" || schedule.TrangThai == "Vắng mặt" || schedule.TrangThai == "Vắng")
+        {
+            return false;
+        }
+
         return schedule.TrangThai == "Đã học" || schedule.TrangThai == "Đã hoàn thành" || schedule.BaoCaoBuoiHoc != null;
     }
 

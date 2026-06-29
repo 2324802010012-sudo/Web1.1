@@ -11,6 +11,7 @@
     var now = TimeOnly.FromDateTime(DateTime.Now);
     bool IsCompletedSession(StudyConnect.Models.LichHoc session)
     {
+        if (session.TrangThai == "Sinh viên vắng" || session.TrangThai == "Vắng mặt" || session.TrangThai == "Vắng") return false;
         if (session.TrangThai == "Đã học" || session.TrangThai == "Đã hoàn thành" || session.BaoCaoBuoiHoc != null) return true;
         if (session.TrangThai != "Sắp diễn ra" && session.TrangThai != "Đã lên lịch") return false;
         if (session.NgayHoc < today) return true;
@@ -129,6 +130,8 @@
                         var accepted = matches.FirstOrDefault(g => g.TrangThai == "Mentor chấp nhận" || g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch" || g.TrangThai == "Hoàn thành");
                         var latestSchedule = matches.SelectMany(g => g.LichHocs).OrderByDescending(l => l.NgayHoc).FirstOrDefault();
                         var canEvaluate = accepted?.LichHocs.Any(IsCompletedSession) == true && accepted.DanhGiaHuongDans.Count == 0;
+                        var hasReview = accepted?.DanhGiaHuongDans.Any() == true;
+                        var hasCompletedSession = accepted?.LichHocs.Any(IsCompletedSession) == true;
                         <article>
                             <div class="request-progress-main">
                                 <span class="status-pill">@item.TrangThai</span>
@@ -145,6 +148,28 @@
                                         <span>Chưa có lịch học</span>
                                     }
                                 </div>
+                                <div class="evaluation-state-row">
+                                    @if (hasReview)
+                                    {
+                                        <span class="evaluation-badge done">Đã đánh giá mentor</span>
+                                    }
+                                    else if (canEvaluate)
+                                    {
+                                        <span class="evaluation-badge pending">Chờ bạn đánh giá</span>
+                                    }
+                                    else if (hasCompletedSession)
+                                    {
+                                        <span class="evaluation-badge pending">Có buổi đã học</span>
+                                    }
+                                    else if (latestSchedule != null)
+                                    {
+                                        <span class="evaluation-badge muted">Chưa đến giờ đánh giá</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="evaluation-badge muted">Chưa có buổi học để đánh giá</span>
+                                    }
+                                </div>
                             </div>
                             <div class="request-next-action">
                                 @if (accepted != null && latestSchedule == null)
@@ -154,6 +179,11 @@
                                 else if (canEvaluate && accepted != null)
                                 {
                                     <a class="btn btn-primary" asp-action="Evaluate" asp-route-id="@accepted.MaGhepNoi">Đánh giá</a>
+                                }
+                                else if (hasReview)
+                                {
+                                    <span class="evaluation-badge done">Đã đánh giá</span>
+                                    <a class="btn btn-light" asp-action="Details" asp-route-id="@item.MaYeuCau">Chi tiết</a>
                                 }
                                 else
                                 {

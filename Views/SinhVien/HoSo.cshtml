@@ -28,7 +28,11 @@
         .Where(value => !string.IsNullOrWhiteSpace(value))
         .Distinct()
         .Count();
-    var completedHistoryCount = studyHistory.Count(session => session.TrangThai == "Đã học" || session.TrangThai == "Đã hoàn thành" || session.BaoCaoBuoiHoc != null);
+    var completedHistoryCount = studyHistory.Count(session =>
+        session.TrangThai != "Sinh viên vắng"
+        && session.TrangThai != "Vắng mặt"
+        && session.TrangThai != "Vắng"
+        && (session.TrangThai == "Đã học" || session.TrangThai == "Đã hoàn thành" || session.BaoCaoBuoiHoc != null));
 
     string SlotLabel(string value)
     {
@@ -217,7 +221,10 @@
                     {
                         var request = session.MaGhepNoiNavigation.MaYeuCauNavigation;
                         var mentor = session.MaGhepNoiNavigation.MaHuongDanNavigation;
-                        var completed = session.TrangThai == "Đã học" || session.TrangThai == "Đã hoàn thành" || session.BaoCaoBuoiHoc != null;
+                        var absent = session.TrangThai == "Sinh viên vắng" || session.TrangThai == "Vắng mặt" || session.TrangThai == "Vắng";
+                        var completed = !absent && (session.TrangThai == "Đã học" || session.TrangThai == "Đã hoàn thành" || session.BaoCaoBuoiHoc != null);
+                        var hasReview = session.MaGhepNoiNavigation.DanhGiaHuongDans.Any();
+                        var canReview = completed && !hasReview;
                         <article>
                             <time>
                                 <strong>@session.NgayHoc.ToString("dd/MM")</strong>
@@ -234,6 +241,14 @@
                             <a class="history-status @(completed ? "done" : "")" asp-controller="YeuCauHoTroHocTaps" asp-action="Details" asp-route-id="@request.MaYeuCau">
                                 @(completed ? "Đã học" : session.TrangThai ?? "Đang lên lịch")
                             </a>
+                            @if (canReview)
+                            {
+                                <a class="btn btn-primary" asp-controller="YeuCauHoTroHocTaps" asp-action="Evaluate" asp-route-id="@session.MaGhepNoi">Đánh giá mentor</a>
+                            }
+                            else if (hasReview)
+                            {
+                                <span class="history-status done">Đã đánh giá</span>
+                            }
                         </article>
                     }
                 </div>

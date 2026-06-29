@@ -79,7 +79,11 @@ namespace StudyConnect.Controllers
                 SelectedLinhVucId = linhVucId,
                 Keyword = cleanKeyword,
                 MentorCount = await activeMentorQuery.CountAsync(),
-                CompletedSessionCount = await _context.LichHocs.CountAsync(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null),
+                CompletedSessionCount = await _context.LichHocs.CountAsync(l =>
+                    l.TrangThai != "Sinh viên vắng"
+                    && l.TrangThai != "Vắng mặt"
+                    && l.TrangThai != "Vắng"
+                    && (l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null)),
                 AverageRating = averageRating,
                 LinhVucOptions = fields
                     .Select(l => new SelectListItem(l.TenLinhVuc, l.MaLinhVuc.ToString(), l.MaLinhVuc == linhVucId))
@@ -106,6 +110,12 @@ namespace StudyConnect.Controllers
                     .ThenInclude(g => g.LichHocs)
                         .ThenInclude(l => l.BaoCaoBuoiHoc)
                 .Include(m => m.DanhGiaHuongDans)
+                    .ThenInclude(d => d.MaSinhVienNavigation)
+                        .ThenInclude(s => s.MaTaiKhoanNavigation)
+                .Include(m => m.DanhGiaHuongDans)
+                    .ThenInclude(d => d.MaGhepNoiNavigation)
+                        .ThenInclude(g => g.MaYeuCauNavigation)
+                            .ThenInclude(y => y.MaLinhVucNavigation)
                 .FirstOrDefaultAsync(m => m.MaHuongDan == id && (m.TrangThai == null || m.TrangThai == "Hoạt động"));
 
             if (mentor == null) return NotFound();
@@ -145,6 +155,20 @@ namespace StudyConnect.Controllers
                     .OrderByDescending(l => l.NgayHoc)
                     .Take(5)
                     .Select(l => $"{l.NgayHoc:dd/MM/yyyy} - {l.GioBatDau:HH\\:mm}-{l.GioKetThuc:HH\\:mm} - {l.TrangThai ?? "Đã lên lịch"}")
+                    .ToList(),
+                DanhGiaGanDay = mentor.DanhGiaHuongDans
+                    .Where(d => d.SoSao.HasValue)
+                    .OrderByDescending(d => d.NgayDanhGia)
+                    .ThenByDescending(d => d.MaDanhGia)
+                    .Take(6)
+                    .Select(d => new MentorReviewViewModel
+                    {
+                        SinhVien = d.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen,
+                        SoSao = d.SoSao ?? 0,
+                        NhanXet = d.NhanXet,
+                        NgayDanhGia = d.NgayDanhGia,
+                        LinhVuc = d.MaGhepNoiNavigation.MaYeuCauNavigation.MaLinhVucNavigation.TenLinhVuc
+                    })
                     .ToList()
             };
 
@@ -245,7 +269,10 @@ namespace StudyConnect.Controllers
 
             var completedSessions = mentor.GhepNoiHocTaps
                 .SelectMany(g => g.LichHocs)
-                .Count(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
+                .Count(l => l.TrangThai != "Sinh viên vắng"
+                    && l.TrangThai != "Vắng mặt"
+                    && l.TrangThai != "Vắng"
+                    && (l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null));
 
             if (completedSessions == 0)
             {
@@ -319,7 +346,10 @@ namespace StudyConnect.Controllers
             var averageRating = reviewCount == 0 ? 0m : Math.Round((decimal)ratings.Average(), 2);
             var completedSessions = mentor.GhepNoiHocTaps
                 .SelectMany(g => g.LichHocs)
-                .Count(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
+                .Count(l => l.TrangThai != "Sinh viên vắng"
+                    && l.TrangThai != "Vắng mặt"
+                    && l.TrangThai != "Vắng"
+                    && (l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null));
             var reportCount = mentor.GhepNoiHocTaps
                 .SelectMany(g => g.LichHocs)
                 .Count(l => l.BaoCaoBuoiHoc != null);

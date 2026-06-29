@@ -176,9 +176,18 @@
                                 {
                                     <span>Đã từ chối</span>
                                 }
+                                else if (session.TrangThai == "Sinh viên vắng" || session.TrangThai == "Vắng mặt" || session.TrangThai == "Vắng")
+                                {
+                                    <span>Sinh viên vắng</span>
+                                }
                                 else
                                 {
-                                    <span>Đã xác nhận</span>
+                                    <div class="inline-actions">
+                                        <span>Đã xác nhận</span>
+                                        <form asp-action="MarkStudentAbsent" asp-route-id="@session.MaLichHoc" method="post">
+                                            <button class="light" type="submit">SV vắng</button>
+                                        </form>
+                                    </div>
                                 }
                             </div>
                         }

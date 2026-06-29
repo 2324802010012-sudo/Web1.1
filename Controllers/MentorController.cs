@@ -58,7 +58,10 @@ public class MentorController : RoleProtectedController
 
         ViewBag.UserName = CurrentUserName;
         ViewBag.GhepNoi = mentorId == 0 ? 0 : await _context.GhepNoiHocTaps.CountAsync(g => g.MaHuongDan == mentorId);
-        ViewBag.LichHoc = sessions.Count(l => l.NgayHoc >= today && l.TrangThai != "Đã học" && l.TrangThai != "Đã hoàn thành");
+        ViewBag.LichHoc = sessions.Count(l => l.NgayHoc >= today
+            && l.TrangThai != "Đã học"
+            && l.TrangThai != "Đã hoàn thành"
+            && !IsAbsentStatus(l.TrangThai));
         ViewBag.DanhGiaCount = mentorId == 0 ? 0 : await _context.DanhGiaHuongDans.CountAsync(d => d.MaHuongDan == mentorId);
         ViewBag.DanhGia = mentor?.DiemDanhGia ?? 0;
         ViewBag.UyTin = mentor?.DiemUyTin ?? 0;
@@ -238,6 +241,53 @@ public class MentorController : RoleProtectedController
         return RedirectToAction(nameof(Index), null, null, "lich-hoc");
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkStudentAbsent(int id)
+    {
+        var guard = RequireRoles(AccountRoles.Mentor);
+        if (guard != null) return guard;
+
+        var session = await CurrentMentorSessionAsync(id);
+        if (session == null) return NotFound();
+
+        if (session.TrangThai != "Sắp diễn ra" && session.TrangThai != "Đã lên lịch")
+        {
+            TempData["SuccessMessage"] = "Chỉ có thể ghi nhận vắng mặt với buổi học đã được mentor xác nhận.";
+            return RedirectToAction(nameof(Index), null, null, "lich-hoc");
+        }
+
+        if (!IsSessionTimePassed(session))
+        {
+            TempData["SuccessMessage"] = "Chỉ có thể ghi nhận sinh viên vắng sau khi buổi học đã qua giờ kết thúc.";
+            return RedirectToAction(nameof(Index), null, null, "lich-hoc");
+        }
+
+        var sinhVienId = session.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVien;
+        var previousAbsences = await CountStudentAbsencesAsync(sinhVienId, session.MaLichHoc);
+        var totalAbsences = previousAbsences + 1;
+
+        session.TrangThai = "Sinh viên vắng";
+        AddStudentNotification(
+            session,
+            totalAbsences >= 3 ? "Bạn đã bị khóa tạo yêu cầu hỗ trợ mới" : "Bạn đã vắng buổi học 1-1",
+            totalAbsences >= 3
+                ? "Bạn đã vắng 3 buổi học 1-1. Hệ thống tạm thời khóa quyền tạo yêu cầu hỗ trợ mới, vui lòng liên hệ cố vấn để được xem xét."
+                : $"Mentor đã ghi nhận bạn vắng buổi học ngày {session.NgayHoc:dd/MM/yyyy} lúc {session.GioBatDau:HH\\:mm}-{session.GioKetThuc:HH\\:mm}. Số buổi vắng hiện tại: {totalAbsences}/3.");
+        AddMentorNotification(
+            totalAbsences >= 3 ? "Đã khóa tạo yêu cầu mới của sinh viên" : "Đã ghi nhận sinh viên vắng",
+            totalAbsences >= 3
+                ? $"{session.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen} đã vắng 3 buổi học 1-1. Hệ thống đã khóa quyền tạo yêu cầu hỗ trợ mới."
+                : $"Đã ghi nhận {session.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen} vắng buổi học ngày {session.NgayHoc:dd/MM/yyyy} {session.GioBatDau:HH\\:mm}-{session.GioKetThuc:HH\\:mm}. Tổng vắng: {totalAbsences}/3.");
+
+        await _context.SaveChangesAsync();
+
+        TempData["SuccessMessage"] = totalAbsences >= 3
+            ? "Đã ghi nhận sinh viên vắng. Sinh viên đã đạt 3 buổi vắng và bị khóa tạo yêu cầu hỗ trợ mới."
+            : $"Đã ghi nhận sinh viên vắng ({totalAbsences}/3).";
+        return RedirectToAction(nameof(Index), null, null, "lich-hoc");
+    }
+
     public IActionResult BaoCao(int id)
     {
         var guard = RequireRoles(AccountRoles.Mentor);
@@ -323,7 +373,12 @@ public class MentorController : RoleProtectedController
                         .ThenInclude(s => s.MaTaiKhoanNavigation)
             .Where(l => l.MaLichHoc != session.MaLichHoc)
             .Where(l => l.NgayHoc == session.NgayHoc)
-            .Where(l => l.TrangThai != "Mentor từ chối lịch" && l.TrangThai != "Đã hủy" && l.TrangThai != "Đã hủy lịch")
+            .Where(l => l.TrangThai != "Mentor từ chối lịch"
+                && l.TrangThai != "Đã hủy"
+                && l.TrangThai != "Đã hủy lịch"
+                && l.TrangThai != "Sinh viên vắng"
+                && l.TrangThai != "Vắng mặt"
+                && l.TrangThai != "Vắng")
             .Where(l => l.MaGhepNoiNavigation.MaHuongDan == mentorId
                 || l.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVien == studentId)
             .ToListAsync();
@@ -362,10 +417,50 @@ public class MentorController : RoleProtectedController
             MaTaiKhoan = session.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVienNavigation.MaTaiKhoan,
             TieuDe = title,
             NoiDung = message,
-            LoaiThongBao = "LichHoc",
+            LoaiThongBao = "VangHoc",
             DaDoc = false,
             NgayTao = DateTime.Now
         });
+    }
+
+    private void AddMentorNotification(string title, string message)
+    {
+        if (!CurrentUserId.HasValue) return;
+
+        _context.ThongBaos.Add(new ThongBao
+        {
+            MaTaiKhoan = CurrentUserId.Value,
+            TieuDe = title,
+            NoiDung = message,
+            LoaiThongBao = "VangHoc",
+            DaDoc = false,
+            NgayTao = DateTime.Now
+        });
+    }
+
+    private async Task<int> CountStudentAbsencesAsync(int sinhVienId, int? excludingSessionId = null)
+    {
+        return await _context.LichHocs
+            .Include(l => l.MaGhepNoiNavigation)
+                .ThenInclude(g => g.MaYeuCauNavigation)
+            .Where(l => l.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVien == sinhVienId)
+            .Where(l => !excludingSessionId.HasValue || l.MaLichHoc != excludingSessionId.Value)
+            .CountAsync(l => l.TrangThai == "Sinh viên vắng"
+                || l.TrangThai == "Vắng mặt"
+                || l.TrangThai == "Vắng");
+    }
+
+    private static bool IsAbsentStatus(string? status)
+    {
+        return status == "Sinh viên vắng" || status == "Vắng mặt" || status == "Vắng";
+    }
+
+    private static bool IsSessionTimePassed(LichHoc session)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        if (session.NgayHoc < today) return true;
+        if (session.NgayHoc > today) return false;
+        return session.GioKetThuc <= TimeOnly.FromDateTime(DateTime.Now);
     }
 
     private static bool TimeOverlaps(TimeOnly firstStart, TimeOnly firstEnd, TimeOnly secondStart, TimeOnly secondEnd)
@@ -375,6 +470,11 @@ public class MentorController : RoleProtectedController
 
     private static bool IsCompletedSession(LichHoc schedule)
     {
+        if (IsAbsentStatus(schedule.TrangThai))
+        {
+            return false;
+        }
+
         if (schedule.TrangThai == "Đã học" || schedule.TrangThai == "Đã hoàn thành" || schedule.BaoCaoBuoiHoc != null)
         {
             return true;
@@ -584,7 +684,10 @@ public class MentorController : RoleProtectedController
             }));
 
         notifications.AddRange(sessions
-            .Where(l => l.NgayHoc >= today && l.TrangThai != "Đã học" && l.TrangThai != "Đã hoàn thành")
+            .Where(l => l.NgayHoc >= today
+                && l.TrangThai != "Đã học"
+                && l.TrangThai != "Đã hoàn thành"
+                && !IsAbsentStatus(l.TrangThai))
             .Where(l => l.TrangThai != "Chờ mentor xác nhận" && l.TrangThai != "Mentor từ chối lịch")
             .Take(3)
             .Select(l => new DashboardNotificationViewModel

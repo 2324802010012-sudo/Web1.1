@@ -7,6 +7,7 @@
     var chuNhiemAccounts = ViewBag.ChuNhiemAccounts as List<TaiKhoan> ?? [];
     var clubs = ViewBag.Clubs as List<CauLacBo> ?? [];
     var clubManagers = ViewBag.ClubManagers as List<ThanhVienClb> ?? [];
+    var activities = ViewBag.HoatDongGanDay as List<AdminActivityViewModel> ?? [];
 }
 
 <main class="role-dashboard admin-system-dashboard">
@@ -19,18 +20,29 @@
         <a asp-controller="LinhVucHocTaps" asp-action="Index">Danh mục lĩnh vực</a>
         <a href="#phan-quyen">Phân quyền</a>
         <a href="#cap-quyen-clb">Cấp quyền CLB</a>
+        <a href="#lich-su-hoat-dong">Lịch sử hoạt động</a>
         <a href="#cau-hinh">Cấu hình</a>
     </aside>
 
     <section class="role-main">
-        <header class="role-header">
+        <header class="role-header admin-hero">
             <div>
                 <p class="eyebrow">Admin hệ thống</p>
                 <h1>Quản trị nền tảng StudyConnect</h1>
                 <span>Admin chỉ quản lý tài khoản, phân quyền, danh mục và trạng thái hệ thống. Các nghiệp vụ học 1-1, mentor, CLB thuộc dashboard vai trò tương ứng.</span>
+                <div class="admin-quick-actions">
+                    <a class="btn btn-primary" asp-controller="TaiKhoans" asp-action="Create">Tạo tài khoản</a>
+                    <a class="btn btn-light" asp-controller="TaiKhoans" asp-action="Index">Quản lý tài khoản</a>
+                    <a class="btn btn-light" asp-controller="LinhVucHocTaps" asp-action="Index">Danh mục lĩnh vực</a>
+                </div>
             </div>
             <form asp-controller="TaiKhoans" asp-action="Logout" method="post"><button class="btn btn-outline" type="submit">Đăng xuất</button></form>
         </header>
+
+        @if (TempData["SuccessMessage"] is string success)
+        {
+            <div class="flow-alert success">@success</div>
+        }
 
         <section class="role-stats admin-system-stats" id="tong-quan">
             <article><small>Tổng tài khoản</small><strong>@ViewBag.TongTaiKhoan</strong></article>
@@ -40,22 +52,79 @@
             <article><small>Danh mục lĩnh vực</small><strong>@ViewBag.LinhVuc</strong></article>
         </section>
 
-        <section class="role-panel" id="phan-quyen">
+        <section class="admin-overview-grid">
+            <article class="role-panel" id="phan-quyen">
+                <div class="role-panel-head">
+                    <div>
+                        <p class="eyebrow">Tài khoản & phân quyền</p>
+                        <h2>Phân bổ người dùng theo vai trò</h2>
+                    </div>
+                    <a asp-controller="TaiKhoans" asp-action="Index">Quản lý tài khoản</a>
+                </div>
+                <div class="admin-role-grid">
+                    @foreach (var role in AccountRoles.All)
+                    {
+                        var count = roleStats.TryGetValue(role, out var roleCount) ? roleCount : 0;
+                        <article>
+                            <span>@role[..1]</span>
+                            <strong>@AccountRoles.DisplayName(role)</strong>
+                            <small>@count tài khoản</small>
+                        </article>
+                    }
+                </div>
+            </article>
+
+            <article class="role-panel admin-health-panel">
+                <div class="role-panel-head">
+                    <div>
+                        <p class="eyebrow">Sức khỏe dữ liệu</p>
+                        <h2>Theo dõi nhanh</h2>
+                    </div>
+                    <strong>@activities.Count hoạt động</strong>
+                </div>
+                <div class="admin-health-list">
+                    <div><span>TK</span><strong>@ViewBag.TongTaiKhoan tài khoản</strong><small>@ViewBag.TaiKhoanHoatDong đang hoạt động</small></div>
+                    <div><span>TB</span><strong>@ViewBag.ThongBao thông báo</strong><small>Dữ liệu chuông toàn hệ thống</small></div>
+                    <div><span>LV</span><strong>@ViewBag.LinhVuc lĩnh vực</strong><small>Dùng cho mentor và yêu cầu 1-1</small></div>
+                </div>
+            </article>
+        </section>
+
+        <section class="role-panel" id="lich-su-hoat-dong">
             <div class="role-panel-head">
                 <div>
-                    <p class="eyebrow">Tài khoản & phân quyền</p>
-                    <h2>Phân bổ người dùng theo vai trò</h2>
+                    <p class="eyebrow">Audit hệ thống</p>
+                    <h2>Lịch sử hoạt động của tất cả tài khoản</h2>
                 </div>
-                <a asp-controller="TaiKhoans" asp-action="Index">Quản lý tài khoản</a>
+                <strong>@activities.Count gần nhất</strong>
             </div>
-            <div class="admin-role-grid">
-                @foreach (var role in AccountRoles.All)
+            <div class="admin-activity-timeline">
+                @if (!activities.Any())
                 {
-                    var count = roleStats.TryGetValue(role, out var roleCount) ? roleCount : 0;
-                    <article>
-                        <span>@role[..1]</span>
-                        <strong>@AccountRoles.DisplayName(role)</strong>
-                        <small>@count tài khoản</small>
+                    <p class="empty-text">Chưa có hoạt động nào được ghi nhận.</p>
+                }
+                @foreach (var item in activities)
+                {
+                    <article class="@item.Tone">
+                        <time>
+                            <strong>@item.Time.ToString("dd/MM")</strong>
+                            <span>@item.Time.ToString("HH:mm")</span>
+                        </time>
+                        <div class="admin-activity-marker"></div>
+                        <div>
+                            <header>
+                                <strong>@item.Action</strong>
+                                <span>@item.ActorName</span>
+                            </header>
+                            <p>@item.Description</p>
+                            <footer>
+                                <small>@AccountRoles.DisplayName(item.ActorRole) → @item.Target</small>
+                                @if (!string.IsNullOrWhiteSpace(item.Url))
+                                {
+                                    <a href="@item.Url">Mở</a>
+                                }
+                            </footer>
+                        </div>
                     </article>
                 }
             </div>

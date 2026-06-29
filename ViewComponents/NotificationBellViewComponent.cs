@@ -54,6 +54,7 @@ public class NotificationBellViewComponent : ViewComponent
         return type switch
         {
             "XacNhanLichHoc" or "LichHoc" => "blue",
+            "VangHoc" => "orange",
             "DangKyMentor" or "QuanLyMentor" => "green",
             "BauCuCLB" or "ThanhVienCLB" => "orange",
             _ => "blue"

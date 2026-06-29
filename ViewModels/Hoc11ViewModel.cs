@@ -65,4 +65,19 @@ public class MentorDetailViewModel : Hoc11MentorCardViewModel
     public List<string> CauLacBo { get; set; } = [];
 
     public List<string> LichSuHoTro { get; set; } = [];
+
+    public List<MentorReviewViewModel> DanhGiaGanDay { get; set; } = [];
+}
+
+public class MentorReviewViewModel
+{
+    public string SinhVien { get; set; } = string.Empty;
+
+    public int SoSao { get; set; }
+
+    public string? NhanXet { get; set; }
+
+    public DateTime? NgayDanhGia { get; set; }
+
+    public string? LinhVuc { get; set; }
 }

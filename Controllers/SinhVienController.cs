@@ -31,8 +31,18 @@ public class SinhVienController : RoleProtectedController
         ViewBag.UserName = CurrentUserName;
         ViewBag.YeuCau = sinhVienId == 0 ? 0 : await _context.YeuCauHoTroHocTaps.CountAsync(y => y.MaSinhVien == sinhVienId);
         ViewBag.GhepNoi = sinhVienId == 0 ? 0 : await _context.GhepNoiHocTaps.CountAsync(g => g.MaYeuCauNavigation.MaSinhVien == sinhVienId);
-        ViewBag.LichHoc = sinhVienId == 0 ? 0 : await _context.LichHocs.CountAsync(l => l.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVien == sinhVienId && l.NgayHoc >= DateOnly.FromDateTime(DateTime.Today));
-        ViewBag.BuoiHoanThanh = sinhVienId == 0 ? 0 : await _context.LichHocs.CountAsync(l => l.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVien == sinhVienId && (l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null));
+        ViewBag.LichHoc = sinhVienId == 0 ? 0 : await _context.LichHocs.CountAsync(l =>
+            l.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVien == sinhVienId
+            && l.NgayHoc >= DateOnly.FromDateTime(DateTime.Today)
+            && l.TrangThai != "Sinh viên vắng"
+            && l.TrangThai != "Vắng mặt"
+            && l.TrangThai != "Vắng");
+        ViewBag.BuoiHoanThanh = sinhVienId == 0 ? 0 : await _context.LichHocs.CountAsync(l =>
+            l.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVien == sinhVienId
+            && l.TrangThai != "Sinh viên vắng"
+            && l.TrangThai != "Vắng mặt"
+            && l.TrangThai != "Vắng"
+            && (l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null));
         ViewBag.DanhGia = sinhVienId == 0 ? 0 : await _context.DanhGiaHuongDans.CountAsync(d => d.MaSinhVien == sinhVienId);
         ViewBag.CauLacBo = sinhVienId == 0 ? 0 : await _context.ThanhVienClbs.CountAsync(t => t.MaSinhVien == sinhVienId);
         ViewBag.DaCapNhatHoSo = sinhVien != null && await HasAvailabilityAsync(CurrentUserId!.Value) && IsProfileComplete(sinhVien);
@@ -292,6 +302,8 @@ public class SinhVienController : RoleProtectedController
 
         ViewBag.StudyHistory = await _context.LichHocs
             .Include(l => l.BaoCaoBuoiHoc)
+            .Include(l => l.MaGhepNoiNavigation)
+                .ThenInclude(g => g.DanhGiaHuongDans)
             .Include(l => l.MaGhepNoiNavigation)
                 .ThenInclude(g => g.MaHuongDanNavigation)
                     .ThenInclude(m => m.MaTaiKhoanNavigation)

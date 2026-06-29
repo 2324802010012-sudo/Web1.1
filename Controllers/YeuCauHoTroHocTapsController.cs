@@ -50,7 +50,10 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
             .ToList();
 
         ViewBag.UpcomingSchedules = schedules
-            .Where(l => l.NgayHoc >= today && l.TrangThai != "Đã học" && l.TrangThai != "Đã hoàn thành")
+            .Where(l => l.NgayHoc >= today
+                && l.TrangThai != "Đã học"
+                && l.TrangThai != "Đã hoàn thành"
+                && !IsAbsentStatus(l.TrangThai))
             .Take(6)
             .ToList();
         ViewBag.CompletedScheduleCount = schedules.Count(IsCompletedSession);
@@ -73,6 +76,9 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         var profileGuard = await RequireCompletedStudentProfileAsync();
         if (profileGuard != null) return profileGuard;
 
+        var absenceGuard = await RequireNotBlockedByAbsencesAsync();
+        if (absenceGuard != null) return absenceGuard;
+
         var model = new YeuCauHoTroCreateViewModel
         {
             MentorId = mentorId,
@@ -93,6 +99,9 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
 
         var profileGuard = await RequireCompletedStudentProfileAsync();
         if (profileGuard != null) return profileGuard;
+
+        var absenceGuard = await RequireNotBlockedByAbsencesAsync();
+        if (absenceGuard != null) return absenceGuard;
 
         var sinhVien = await CurrentSinhVienAsync();
         if (sinhVien == null) return RedirectToAction("HoSo", "SinhVien");
@@ -586,6 +595,11 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
 
     private static bool IsCompletedSession(LichHoc schedule)
     {
+        if (IsAbsentStatus(schedule.TrangThai))
+        {
+            return false;
+        }
+
         if (schedule.TrangThai == "Đã học" || schedule.TrangThai == "Đã hoàn thành" || schedule.BaoCaoBuoiHoc != null)
         {
             return true;
@@ -600,6 +614,11 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         if (schedule.NgayHoc < today) return true;
         if (schedule.NgayHoc > today) return false;
         return schedule.GioKetThuc <= TimeOnly.FromDateTime(DateTime.Now);
+    }
+
+    private static bool IsAbsentStatus(string? status)
+    {
+        return status == "Sinh viên vắng" || status == "Vắng mặt" || status == "Vắng";
     }
 
     private async Task<IActionResult?> RequireCompletedStudentProfileAsync()
@@ -618,6 +637,29 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         {
             returnUrl = HttpContext.Request.Path + HttpContext.Request.QueryString
         });
+    }
+
+    private async Task<IActionResult?> RequireNotBlockedByAbsencesAsync()
+    {
+        var sinhVien = await CurrentSinhVienAsync();
+        if (sinhVien == null) return RedirectToAction("HoSo", "SinhVien");
+
+        var absenceCount = await CountStudentAbsencesAsync(sinhVien.MaSinhVien);
+        if (absenceCount < 3) return null;
+
+        TempData["SuccessMessage"] = "Bạn đã vắng 3 buổi học 1-1 nên tạm thời bị khóa tạo yêu cầu hỗ trợ mới. Vui lòng liên hệ cố vấn để được xem xét mở lại.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<int> CountStudentAbsencesAsync(int sinhVienId)
+    {
+        return await _context.LichHocs
+            .Include(l => l.MaGhepNoiNavigation)
+                .ThenInclude(g => g.MaYeuCauNavigation)
+            .Where(l => l.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVien == sinhVienId)
+            .CountAsync(l => l.TrangThai == "Sinh viên vắng"
+                || l.TrangThai == "Vắng mặt"
+                || l.TrangThai == "Vắng");
     }
 
     private async Task ApplySelectedMentorAsync(YeuCauHoTroCreateViewModel model)
@@ -929,7 +971,12 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
             .Include(l => l.MaGhepNoiNavigation)
                 .ThenInclude(g => g.MaYeuCauNavigation)
             .Where(l => dates.Contains(l.NgayHoc))
-            .Where(l => l.TrangThai != "Mentor từ chối lịch" && l.TrangThai != "Đã hủy" && l.TrangThai != "Đã hủy lịch")
+            .Where(l => l.TrangThai != "Mentor từ chối lịch"
+                && l.TrangThai != "Đã hủy"
+                && l.TrangThai != "Đã hủy lịch"
+                && l.TrangThai != "Sinh viên vắng"
+                && l.TrangThai != "Vắng mặt"
+                && l.TrangThai != "Vắng")
             .Where(l => l.MaGhepNoiNavigation.MaHuongDan == mentorId
                 || l.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVien == studentId)
             .ToListAsync();
@@ -993,7 +1040,12 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
                     .ThenInclude(y => y.MaSinhVienNavigation)
                         .ThenInclude(s => s.MaTaiKhoanNavigation)
             .Where(l => dateValues.Contains(l.NgayHoc))
-            .Where(l => l.TrangThai != "Mentor từ chối lịch" && l.TrangThai != "Đã hủy" && l.TrangThai != "Đã hủy lịch")
+            .Where(l => l.TrangThai != "Mentor từ chối lịch"
+                && l.TrangThai != "Đã hủy"
+                && l.TrangThai != "Đã hủy lịch"
+                && l.TrangThai != "Sinh viên vắng"
+                && l.TrangThai != "Vắng mặt"
+                && l.TrangThai != "Vắng")
             .Where(l => l.MaGhepNoiNavigation.MaHuongDan == mentorId
                 || l.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVien == studentId)
             .ToListAsync();
@@ -1033,7 +1085,8 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
     {
         return schedule.TrangThai != "Mentor từ chối lịch"
             && schedule.TrangThai != "Đã hủy"
-            && schedule.TrangThai != "Đã hủy lịch";
+            && schedule.TrangThai != "Đã hủy lịch"
+            && !IsAbsentStatus(schedule.TrangThai);
     }
 
     private static bool TimeOverlaps(TimeOnly firstStart, TimeOnly firstEnd, TimeOnly secondStart, TimeOnly secondEnd)
