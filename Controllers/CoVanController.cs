@@ -35,7 +35,10 @@ public class CoVanController : RoleProtectedController
         ViewBag.HoSoChoDuyet = pendingCount;
         ViewBag.Mentor = await _context.NguoiHuongDans.CountAsync();
         ViewBag.YeuCau = await _context.YeuCauHoTroHocTaps.CountAsync();
-        ViewBag.BaoCao = await _context.BaoCaoBuoiHocs.CountAsync();
+        var allSchedulesForStats = await _context.LichHocs
+            .Include(l => l.BaoCaoBuoiHoc)
+            .ToListAsync();
+        ViewBag.BuoiHocHoanThanh = allSchedulesForStats.Count(IsCompletedSession);
         ViewBag.DanhGia = await _context.DanhGiaHuongDans.CountAsync();
         ViewBag.PendingMentorApplications = pendingApplications;
         ViewBag.Notifications = pendingApplications.Take(3).Select(d => new DashboardNotificationViewModel
@@ -107,12 +110,12 @@ public class CoVanController : RoleProtectedController
                 SoLuotDanhGia = metrics.ReviewCount,
                 ThuHang = index + 1,
                 SoBuoiHoanThanh = metrics.CompletedSessions,
-                SoBaoCao = metrics.ReportCount,
+                SoBaoCao = 0,
                 CongThucUyTin = metrics.FormulaText,
                 TrangThai = m.TrangThai ?? "Hoạt động",
                 SoGhepNoi = m.GhepNoiHocTaps.Count,
                 SoBuoiHoc = m.GhepNoiHocTaps.Sum(g => g.LichHocs.Count),
-                BaoCaoChoDanhGia = m.GhepNoiHocTaps.Count(g => g.LichHocs.Any(l => l.BaoCaoBuoiHoc != null) && !g.DanhGiaHuongDans.Any()),
+                BaoCaoChoDanhGia = 0,
                 SoKhungLichRanh = m.MaTaiKhoanNavigation.LichRanhs.Count
             };
         }).ToList();
@@ -155,7 +158,7 @@ public class CoVanController : RoleProtectedController
         {
             MaTaiKhoan = mentor.MaTaiKhoan,
             TieuDe = "Cố vấn cập nhật hồ sơ mentor",
-            NoiDung = $"Trạng thái mentor của bạn hiện là {mentor.TrangThai}. Điểm uy tín được hệ thống tự tính từ đánh giá, buổi học và báo cáo.",
+            NoiDung = $"Trạng thái mentor của bạn hiện là {mentor.TrangThai}. Điểm uy tín được hệ thống tự tính từ đánh giá, buổi học và số lượt đánh giá.",
             LoaiThongBao = "QuanLyMentor",
             DaDoc = false,
             NgayTao = DateTime.Now
@@ -315,18 +318,13 @@ public class CoVanController : RoleProtectedController
         var completedSessions = mentor.GhepNoiHocTaps
             .SelectMany(g => g.LichHocs)
             .Count(IsCompletedSession);
-        var reportCount = mentor.GhepNoiHocTaps
-            .SelectMany(g => g.LichHocs)
-            .Count(l => l.BaoCaoBuoiHoc != null);
-
-        var ratingScore = reviewCount == 0 ? 0m : averageRating / 5m * 6m;
+        var ratingScore = reviewCount == 0 ? 0m : averageRating / 5m * 7m;
         var sessionScore = Math.Min(completedSessions, 30) / 30m * 2m;
-        var reportScore = completedSessions == 0 ? 0m : Math.Min(reportCount, completedSessions) / (decimal)completedSessions;
         var reviewVolumeScore = Math.Min(reviewCount, 20) / 20m;
-        var reputation = Math.Round(Math.Clamp(ratingScore + sessionScore + reportScore + reviewVolumeScore, 0m, 10m), 2);
+        var reputation = Math.Round(Math.Clamp(ratingScore + sessionScore + reviewVolumeScore, 0m, 10m), 2);
 
-        var formulaText = $"60% đánh giá ({averageRating:0.0}/5), 20% buổi hoàn thành ({completedSessions}/30), 10% báo cáo ({reportCount}/{Math.Max(completedSessions, 1)}), 10% số lượt đánh giá ({reviewCount}/20).";
-        return new MentorQualityMetrics(reputation, averageRating, reviewCount, completedSessions, reportCount, formulaText);
+        var formulaText = $"70% đánh giá ({averageRating:0.0}/5), 20% buổi hoàn thành ({completedSessions}/30), 10% số lượt đánh giá ({reviewCount}/20).";
+        return new MentorQualityMetrics(reputation, averageRating, reviewCount, completedSessions, 0, formulaText);
     }
 
     private static bool IsCompletedSession(LichHoc schedule)

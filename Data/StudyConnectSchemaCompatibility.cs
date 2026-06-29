@@ -11,6 +11,8 @@ public static class StudyConnectSchemaCompatibility
 
         await AddBridgeColumnsAsync(context);
         await FixNullableUniqueConstraintsAsync(context);
+        await RelaxScheduleStatusConstraintAsync(context);
+        await RelaxMatchStatusConstraintAsync(context);
         await BackfillBridgeColumnsAsync(context);
 
         await EnsureDefaultAsync(context, "DotDeCuPhoChuNhiem", "DeCuBatDau", "SYSDATETIME()");
@@ -148,6 +150,36 @@ AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Nguo
 IF COL_LENGTH(N'dbo.NguoiHuongDan', N'MaGiangVien') IS NOT NULL
 AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.NguoiHuongDan') AND name = N'UX_NHD_MaGiangVien_NotNull')
     CREATE UNIQUE INDEX UX_NHD_MaGiangVien_NotNull ON dbo.NguoiHuongDan(MaGiangVien) WHERE MaGiangVien IS NOT NULL;
+""");
+    }
+
+    private static Task RelaxScheduleStatusConstraintAsync(AppDbContext context)
+    {
+        return context.Database.ExecuteSqlRawAsync("""
+DECLARE @dropSql NVARCHAR(MAX) = N'';
+
+SELECT @dropSql = @dropSql + N'ALTER TABLE dbo.LichHoc DROP CONSTRAINT [' + cc.name + N'];'
+FROM sys.check_constraints cc
+WHERE cc.parent_object_id = OBJECT_ID(N'dbo.LichHoc')
+  AND cc.definition LIKE N'%TrangThai%';
+
+IF LEN(@dropSql) > 0
+    EXEC sp_executesql @dropSql;
+""");
+    }
+
+    private static Task RelaxMatchStatusConstraintAsync(AppDbContext context)
+    {
+        return context.Database.ExecuteSqlRawAsync("""
+DECLARE @dropSql NVARCHAR(MAX) = N'';
+
+SELECT @dropSql = @dropSql + N'ALTER TABLE dbo.GhepNoiHocTap DROP CONSTRAINT [' + cc.name + N'];'
+FROM sys.check_constraints cc
+WHERE cc.parent_object_id = OBJECT_ID(N'dbo.GhepNoiHocTap')
+  AND cc.definition LIKE N'%TrangThai%';
+
+IF LEN(@dropSql) > 0
+    EXEC sp_executesql @dropSql;
 """);
     }
 

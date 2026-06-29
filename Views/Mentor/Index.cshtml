@@ -16,7 +16,6 @@
         <a href="#lich-ranh">Lịch rảnh</a>
         <a href="#yeu-cau-ghep-noi">Yêu cầu ghép nối</a>
         <a href="#lich-hoc">Lịch học</a>
-        <a href="#bao-cao">Báo cáo buổi học</a>
         <a asp-controller="TaiKhoans" asp-action="Profile">Hồ sơ cá nhân</a>
     </aside>
 
@@ -25,7 +24,7 @@
             <div>
                 <p class="eyebrow">Đúng vai trò: Mentor</p>
                 <h1>Không gian hướng dẫn của @ViewBag.UserName</h1>
-                <span>Quản lý lịch rảnh, yêu cầu ghép nối, lịch học, báo cáo buổi học và điểm uy tín theo quy trình học tập 1-1.</span>
+                <span>Quản lý lịch rảnh, yêu cầu ghép nối, lịch học và điểm uy tín theo quy trình học tập 1-1.</span>
             </div>
             <div class="mentor-header-actions">
                 <a class="btn btn-primary" asp-controller="Home" asp-action="Hoc11">Xem trang Học 1-1</a>
@@ -41,7 +40,7 @@
         <section class="role-stats" id="tong-quan">
             <article><small>Ghép nối</small><strong>@ViewBag.GhepNoi</strong><span>Đề xuất / đang học</span></article>
             <article><small>Lịch dạy</small><strong>@ViewBag.LichHoc</strong><span>Sắp diễn ra</span></article>
-            <article><small>Báo cáo đã lập</small><strong>@ViewBag.BaoCao</strong><span>Theo dõi tiến độ</span></article>
+            <article><small>Đánh giá đã nhận</small><strong>@ViewBag.DanhGiaCount</strong><span>Từ sinh viên</span></article>
             <article><small>Đánh giá TB</small><strong>@ViewBag.DanhGia</strong><span>Từ sinh viên</span></article>
             <article><small>Điểm uy tín</small><strong>@ViewBag.UyTin</strong><span>Dùng cho gợi ý</span></article>
             <article><small>Xếp hạng tháng này</small><strong>@(ViewBag.XepHang ?? "--")</strong><span>@(ViewBag.XepHangLinhVuc == null ? "Chưa có hạng theo lĩnh vực" : $"Hạng lĩnh vực #{ViewBag.XepHangLinhVuc}")</span></article>
@@ -82,13 +81,13 @@
                     <div>
                         <h3>@ViewBag.UserName</h3>
                         <p>Mentor đã được duyệt, có thể nhận yêu cầu hỗ trợ học tập 1-1.</p>
-                        <div class="mentor-skill-tags"><span>Chuyên môn đã duyệt</span><span>Lịch rảnh cá nhân</span><span>Báo cáo sau buổi học</span></div>
+                        <div class="mentor-skill-tags"><span>Chuyên môn đã duyệt</span><span>Lịch rảnh cá nhân</span><span>Đánh giá minh bạch</span></div>
                     </div>
                 </div>
                 <div class="mentor-checklist">
                     <div><span></span><strong>Nhận ghép nối</strong><small>Xem chi tiết yêu cầu trước khi chấp nhận hoặc từ chối.</small></div>
                     <div><span></span><strong>Tự đặt lịch rảnh</strong><small>Lịch rảnh dùng để sinh viên lên lịch học phù hợp.</small></div>
-                    <div><span></span><strong>Báo cáo buổi học</strong><small>Lưu nội dung đã học để sinh viên đánh giá.</small></div>
+                    <div><span></span><strong>Nhận đánh giá</strong><small>Sinh viên đánh giá trực tiếp sau buổi học để cập nhật uy tín.</small></div>
                 </div>
             </article>
 
@@ -161,27 +160,29 @@
                         {
                             <div>
                                 <time>@session.GioBatDau.ToString("HH:mm")<br />@session.NgayHoc.ToString("dd/MM")</time>
-                                <div><strong>@session.MaGhepNoiNavigation.MaYeuCauNavigation.MaLinhVucNavigation.TenLinhVuc</strong><small>@session.HinhThuc - @session.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen</small></div>
-                                @if (session.BaoCaoBuoiHoc == null)
+                                <div>
+                                    <strong>@session.MaGhepNoiNavigation.MaYeuCauNavigation.MaLinhVucNavigation.TenLinhVuc</strong>
+                                    <small>@session.HinhThuc - @session.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen</small>
+                                    <small>Trạng thái: @session.TrangThai</small>
+                                </div>
+                                @if (session.TrangThai == "Chờ mentor xác nhận")
                                 {
-                                    <a asp-action="BaoCao" asp-route-id="@session.MaLichHoc">Lập báo cáo</a>
+                                    <div class="inline-actions">
+                                        <form asp-action="ConfirmSchedule" asp-route-id="@session.MaLichHoc" method="post"><button type="submit">Xác nhận</button></form>
+                                        <form asp-action="RejectSchedule" asp-route-id="@session.MaLichHoc" method="post"><button class="light" type="submit">Từ chối</button></form>
+                                    </div>
+                                }
+                                else if (session.TrangThai == "Mentor từ chối lịch")
+                                {
+                                    <span>Đã từ chối</span>
                                 }
                                 else
                                 {
-                                    <span>Đã báo cáo</span>
+                                    <span>Đã xác nhận</span>
                                 }
                             </div>
                         }
                     }
-                </div>
-            </article>
-
-            <article class="role-panel" id="bao-cao">
-                <div class="role-panel-head"><div><p class="eyebrow">Sau buổi học</p><h2>Báo cáo cần hoàn tất</h2></div></div>
-                <div class="report-flow">
-                    <div><span>1</span><strong>Nội dung đã học</strong><small>Tóm tắt kiến thức, ví dụ và lỗi đã xử lý.</small></div>
-                    <div><span>2</span><strong>Bài tập / hướng học tiếp</strong><small>Giao nhiệm vụ và tài liệu cần ôn lại.</small></div>
-                    <div><span>3</span><strong>Mức độ tiếp thu</strong><small>Nhận xét để cập nhật lịch sử học tập.</small></div>
                 </div>
             </article>
         </section>

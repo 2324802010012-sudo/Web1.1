@@ -7,6 +7,16 @@
     var hasMentorSuggestion = matches.Any();
     var hasAcceptedMatch = matches.Any(g => g.TrangThai == "Mentor chấp nhận" || g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch" || g.TrangThai == "Hoàn thành");
     var hasSchedule = matches.SelectMany(g => g.LichHocs).Any();
+    var today = DateOnly.FromDateTime(DateTime.Today);
+    var now = TimeOnly.FromDateTime(DateTime.Now);
+    bool IsCompletedSession(StudyConnect.Models.LichHoc session)
+    {
+        if (session.TrangThai == "Đã học" || session.TrangThai == "Đã hoàn thành" || session.BaoCaoBuoiHoc != null) return true;
+        if (session.TrangThai != "Sắp diễn ra" && session.TrangThai != "Đã lên lịch") return false;
+        if (session.NgayHoc < today) return true;
+        if (session.NgayHoc > today) return false;
+        return session.GioKetThuc <= now;
+    }
 }
 
 <main class="study-flow-page">
@@ -64,7 +74,7 @@
                             {
                                 var sessions = match.LichHocs.OrderByDescending(l => l.NgayHoc).ThenByDescending(l => l.GioBatDau).ToList();
                                 var latestSession = sessions.FirstOrDefault();
-                                var hasReport = latestSession?.BaoCaoBuoiHoc != null;
+                                var hasCompletedSession = sessions.Any(IsCompletedSession);
                                 var hasReview = match.DanhGiaHuongDans.Any();
                                 <article>
                                     <div>
@@ -82,10 +92,7 @@
                                                         <strong>@session.GioBatDau.ToString("HH:mm")-@session.GioKetThuc.ToString("HH:mm")</strong>
                                                         <small>@session.HinhThuc - @session.TrangThai</small>
                                                     </div>
-                                                    @if (session.BaoCaoBuoiHoc != null)
-                                                    {
-                                                        <span>Đã báo cáo</span>
-                                                    }
+                                                    <span>@session.TrangThai</span>
                                                 </article>
                                             }
                                         </div>
@@ -96,11 +103,11 @@
                                     }
                                     <footer>
                                         <a class="btn btn-light" asp-controller="Home" asp-action="MentorDetail" asp-route-id="@match.MaHuongDan">Xem mentor</a>
-                                        @if (match.TrangThai == "Mentor chấp nhận" || match.TrangThai == "Mentor đã chấp nhận" || match.TrangThai == "Đã lên lịch")
+                                        @if (match.TrangThai == "Mentor chấp nhận" || match.TrangThai == "Mentor đã chấp nhận" || match.TrangThai == "Chờ xác nhận lịch" || match.TrangThai == "Đã lên lịch")
                                         {
-                                            <a class="btn btn-light" asp-action="Schedule" asp-route-id="@match.MaGhepNoi">Lên lịch học</a>
+                                            <a class="btn btn-light" asp-action="Schedule" asp-route-id="@match.MaGhepNoi">Đề xuất lịch học</a>
                                         }
-                                        @if (hasReport && !hasReview)
+                                        @if (hasCompletedSession && !hasReview)
                                         {
                                             <a class="btn btn-primary" asp-action="Evaluate" asp-route-id="@match.MaGhepNoi">Đánh giá mentor</a>
                                         }

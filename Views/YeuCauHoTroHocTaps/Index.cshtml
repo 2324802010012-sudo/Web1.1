@@ -7,6 +7,16 @@
     var waitingReportCount = Convert.ToInt32(ViewBag.WaitingReportCount ?? 0);
     var waitingReviewCount = Convert.ToInt32(ViewBag.WaitingReviewCount ?? 0);
     var completedScheduleCount = Convert.ToInt32(ViewBag.CompletedScheduleCount ?? 0);
+    var today = DateOnly.FromDateTime(DateTime.Today);
+    var now = TimeOnly.FromDateTime(DateTime.Now);
+    bool IsCompletedSession(StudyConnect.Models.LichHoc session)
+    {
+        if (session.TrangThai == "Đã học" || session.TrangThai == "Đã hoàn thành" || session.BaoCaoBuoiHoc != null) return true;
+        if (session.TrangThai != "Sắp diễn ra" && session.TrangThai != "Đã lên lịch") return false;
+        if (session.NgayHoc < today) return true;
+        if (session.NgayHoc > today) return false;
+        return session.GioKetThuc <= now;
+    }
 }
 
 <main class="study-flow-page">
@@ -31,16 +41,16 @@
         <header class="flow-title">
             <div>
                 <h1>Lịch học 1-1 của tôi</h1>
-                <p>Theo dõi toàn bộ luồng: mentor chấp nhận, lên lịch, học, nhận báo cáo và đánh giá mentor.</p>
+                <p>Theo dõi toàn bộ luồng: mentor chấp nhận, lên lịch, học và đánh giá mentor.</p>
             </div>
             <a class="btn btn-primary" asp-action="Create">Tạo yêu cầu mới</a>
         </header>
 
         <section class="schedule-stat-grid">
             <article><span class="stat-dot blue"></span><small>Sắp tới</small><strong>@upcomingSchedules.Count</strong><p>Buổi đã lên lịch</p></article>
-            <article><span class="stat-dot green"></span><small>Hoàn thành</small><strong>@completedScheduleCount</strong><p>Buổi có báo cáo hoặc đã kết thúc</p></article>
+            <article><span class="stat-dot green"></span><small>Hoàn thành</small><strong>@completedScheduleCount</strong><p>Buổi đã kết thúc hoặc đã học</p></article>
             <article><span class="stat-dot orange"></span><small>Cần lên lịch</small><strong>@waitingScheduleCount</strong><p>Mentor đã chấp nhận</p></article>
-            <article><span class="stat-dot purple"></span><small>Cần đánh giá</small><strong>@waitingReviewCount</strong><p>Sau khi mentor lập báo cáo</p></article>
+            <article><span class="stat-dot purple"></span><small>Cần đánh giá</small><strong>@waitingReviewCount</strong><p>Sau khi buổi học diễn ra</p></article>
         </section>
 
         <section class="flow-card schedule-board">
@@ -49,7 +59,7 @@
                     <p class="eyebrow">Lịch học</p>
                     <h2>Buổi học sắp tới</h2>
                 </div>
-                <span>@waitingReportCount buổi chờ mentor báo cáo</span>
+                <span>@waitingReviewCount ghép nối chờ đánh giá</span>
             </div>
 
             @if (upcomingSchedules.Count == 0)
@@ -118,7 +128,7 @@
                         var matches = item.GhepNoiHocTaps?.ToList() ?? [];
                         var accepted = matches.FirstOrDefault(g => g.TrangThai == "Mentor chấp nhận" || g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch" || g.TrangThai == "Hoàn thành");
                         var latestSchedule = matches.SelectMany(g => g.LichHocs).OrderByDescending(l => l.NgayHoc).FirstOrDefault();
-                        var canEvaluate = accepted?.LichHocs.Any(l => l.BaoCaoBuoiHoc != null) == true && accepted.DanhGiaHuongDans.Count == 0;
+                        var canEvaluate = accepted?.LichHocs.Any(IsCompletedSession) == true && accepted.DanhGiaHuongDans.Count == 0;
                         <article>
                             <div class="request-progress-main">
                                 <span class="status-pill">@item.TrangThai</span>

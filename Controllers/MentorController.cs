@@ -59,7 +59,7 @@ public class MentorController : RoleProtectedController
         ViewBag.UserName = CurrentUserName;
         ViewBag.GhepNoi = mentorId == 0 ? 0 : await _context.GhepNoiHocTaps.CountAsync(g => g.MaHuongDan == mentorId);
         ViewBag.LichHoc = sessions.Count(l => l.NgayHoc >= today && l.TrangThai != "Đã học" && l.TrangThai != "Đã hoàn thành");
-        ViewBag.BaoCao = mentorId == 0 ? 0 : await _context.BaoCaoBuoiHocs.CountAsync(b => b.MaLichHocNavigation.MaGhepNoiNavigation.MaHuongDan == mentorId);
+        ViewBag.DanhGiaCount = mentorId == 0 ? 0 : await _context.DanhGiaHuongDans.CountAsync(d => d.MaHuongDan == mentorId);
         ViewBag.DanhGia = mentor?.DiemDanhGia ?? 0;
         ViewBag.UyTin = mentor?.DiemUyTin ?? 0;
         ViewBag.XepHang = currentRanking?.HangTong;
@@ -169,7 +169,9 @@ public class MentorController : RoleProtectedController
         return RedirectToAction(nameof(Index), null, null, "yeu-cau-ghep-noi");
     }
 
-    public async Task<IActionResult> BaoCao(int id)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfirmSchedule(int id)
     {
         var guard = RequireRoles(AccountRoles.Mentor);
         if (guard != null) return guard;
@@ -177,55 +179,83 @@ public class MentorController : RoleProtectedController
         var session = await CurrentMentorSessionAsync(id);
         if (session == null) return NotFound();
 
-        ViewBag.Session = session;
-        return View(new BaoCaoBuoiHocViewModel
+        if (session.TrangThai != "Chờ mentor xác nhận")
         {
-            MaLichHoc = id,
-            NoiDungDaHoc = session.BaoCaoBuoiHoc?.NoiDungDaHoc ?? string.Empty,
-            BaiTap = session.BaoCaoBuoiHoc?.BaiTap,
-            MucDoTiepThu = session.BaoCaoBuoiHoc?.MucDoTiepThu ?? "Khá",
-            NhanXet = session.BaoCaoBuoiHoc?.NhanXet
-        });
+            TempData["SuccessMessage"] = "Buổi học này không còn ở trạng thái chờ xác nhận.";
+            return RedirectToAction(nameof(Index), null, null, "lich-hoc");
+        }
+
+        if (!IsInsideSharedAvailability(session))
+        {
+            TempData["SuccessMessage"] = "Khung giờ này không còn nằm trong lịch rảnh chung. Vui lòng cập nhật lịch rảnh hoặc yêu cầu sinh viên chọn lại.";
+            return RedirectToAction(nameof(Index), null, null, "lich-hoc");
+        }
+
+        var conflict = await FindScheduleConflictAsync(session);
+        if (conflict != null)
+        {
+            TempData["SuccessMessage"] = conflict;
+            return RedirectToAction(nameof(Index), null, null, "lich-hoc");
+        }
+
+        session.TrangThai = "Sắp diễn ra";
+        session.MaGhepNoiNavigation.TrangThai = "Đã lên lịch";
+        session.MaGhepNoiNavigation.MaYeuCauNavigation.TrangThai = "Đang học";
+        AddStudentNotification(session, "Mentor đã xác nhận lịch học", $"{CurrentUserName} đã xác nhận buổi học ngày {session.NgayHoc:dd/MM/yyyy} lúc {session.GioBatDau:HH\\:mm}-{session.GioKetThuc:HH\\:mm}.");
+
+        await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = "Đã xác nhận lịch học. Buổi học được chuyển sang trạng thái sắp diễn ra.";
+        return RedirectToAction(nameof(Index), null, null, "lich-hoc");
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> BaoCao(BaoCaoBuoiHocViewModel model)
+    public async Task<IActionResult> RejectSchedule(int id)
     {
         var guard = RequireRoles(AccountRoles.Mentor);
         if (guard != null) return guard;
 
-        var session = await CurrentMentorSessionAsync(model.MaLichHoc);
+        var session = await CurrentMentorSessionAsync(id);
         if (session == null) return NotFound();
 
-        if (!ModelState.IsValid)
+        if (session.TrangThai == "Đã học" || session.TrangThai == "Đã hoàn thành")
         {
-            ViewBag.Session = session;
-            return View(model);
+            TempData["SuccessMessage"] = "Buổi học đã hoàn tất nên không thể từ chối lịch.";
+            return RedirectToAction(nameof(Index), null, null, "lich-hoc");
         }
 
-        var report = session.BaoCaoBuoiHoc;
-        if (report == null)
+        session.TrangThai = "Mentor từ chối lịch";
+        if (!session.MaGhepNoiNavigation.LichHocs.Any(l => l.MaLichHoc != session.MaLichHoc && l.TrangThai == "Sắp diễn ra"))
         {
-            report = new BaoCaoBuoiHoc { MaLichHoc = session.MaLichHoc };
-            _context.BaoCaoBuoiHocs.Add(report);
+            session.MaGhepNoiNavigation.TrangThai = "Mentor chấp nhận";
+            session.MaGhepNoiNavigation.MaYeuCauNavigation.TrangThai = "Đã ghép";
         }
 
-        report.NoiDungDaHoc = model.NoiDungDaHoc.Trim();
-        report.BaiTap = string.IsNullOrWhiteSpace(model.BaiTap) ? null : model.BaiTap.Trim();
-        report.MucDoTiepThu = model.MucDoTiepThu;
-        report.NhanXet = string.IsNullOrWhiteSpace(model.NhanXet) ? null : model.NhanXet.Trim();
-        report.NgayBaoCao = DateTime.Now;
-
-        session.TrangThai = "Đã học";
-        session.MaGhepNoiNavigation.TrangThai = "Đã lên lịch";
-        session.MaGhepNoiNavigation.MaYeuCauNavigation.TrangThai = "Đang học";
+        AddStudentNotification(session, "Mentor từ chối lịch học", $"{CurrentUserName} đã từ chối khung {session.NgayHoc:dd/MM/yyyy} {session.GioBatDau:HH\\:mm}-{session.GioKetThuc:HH\\:mm}. Bạn có thể chọn khung lịch rảnh chung khác.");
 
         await _context.SaveChangesAsync();
-        await UpdateStudyHistoryAsync(session.MaGhepNoiNavigation);
-        await UpdateMentorRatingAndRankingAsync(session.MaGhepNoiNavigation.MaHuongDan);
-        TempData["SuccessMessage"] = "Đã lưu báo cáo buổi học.";
-        return RedirectToAction(nameof(Index), null, null, "bao-cao");
+        TempData["SuccessMessage"] = "Đã từ chối lịch học và gửi thông báo cho sinh viên.";
+        return RedirectToAction(nameof(Index), null, null, "lich-hoc");
+    }
+
+    public IActionResult BaoCao(int id)
+    {
+        var guard = RequireRoles(AccountRoles.Mentor);
+        if (guard != null) return guard;
+
+        TempData["SuccessMessage"] = "Chức năng lập báo cáo sau buổi học đã được lược bỏ. Sinh viên sẽ đánh giá trực tiếp sau buổi học.";
+        return RedirectToAction(nameof(Index), null, null, "lich-hoc");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult BaoCao(BaoCaoBuoiHocViewModel model)
+    {
+        var guard = RequireRoles(AccountRoles.Mentor);
+        if (guard != null) return guard;
+
+        TempData["SuccessMessage"] = "Chức năng lập báo cáo sau buổi học đã được lược bỏ.";
+        return RedirectToAction(nameof(Index), null, null, "lich-hoc");
     }
 
     private async Task<NguoiHuongDan?> CurrentMentorAsync()
@@ -265,19 +295,106 @@ public class MentorController : RoleProtectedController
         return await _context.LichHocs
             .Include(l => l.BaoCaoBuoiHoc)
             .Include(l => l.MaGhepNoiNavigation)
+                .ThenInclude(g => g.LichHocs)
+            .Include(l => l.MaGhepNoiNavigation)
+                .ThenInclude(g => g.MaHuongDanNavigation)
+                    .ThenInclude(m => m.MaTaiKhoanNavigation)
+                        .ThenInclude(t => t.LichRanhs)
+            .Include(l => l.MaGhepNoiNavigation)
                 .ThenInclude(g => g.MaYeuCauNavigation)
                     .ThenInclude(y => y.MaSinhVienNavigation)
                         .ThenInclude(s => s.MaTaiKhoanNavigation)
+                            .ThenInclude(t => t.LichRanhs)
             .Include(l => l.MaGhepNoiNavigation)
                 .ThenInclude(g => g.MaYeuCauNavigation)
                     .ThenInclude(y => y.MaLinhVucNavigation)
             .FirstOrDefaultAsync(l => l.MaLichHoc == sessionId && l.MaGhepNoiNavigation.MaHuongDan == mentor.MaHuongDan);
     }
 
+    private async Task<string?> FindScheduleConflictAsync(LichHoc session)
+    {
+        var mentorId = session.MaGhepNoiNavigation.MaHuongDan;
+        var studentId = session.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVien;
+
+        var conflicts = await _context.LichHocs
+            .Include(l => l.MaGhepNoiNavigation)
+                .ThenInclude(g => g.MaYeuCauNavigation)
+                    .ThenInclude(y => y.MaSinhVienNavigation)
+                        .ThenInclude(s => s.MaTaiKhoanNavigation)
+            .Where(l => l.MaLichHoc != session.MaLichHoc)
+            .Where(l => l.NgayHoc == session.NgayHoc)
+            .Where(l => l.TrangThai != "Mentor từ chối lịch" && l.TrangThai != "Đã hủy" && l.TrangThai != "Đã hủy lịch")
+            .Where(l => l.MaGhepNoiNavigation.MaHuongDan == mentorId
+                || l.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVien == studentId)
+            .ToListAsync();
+
+        var conflict = conflicts.FirstOrDefault(l => TimeOverlaps(session.GioBatDau, session.GioKetThuc, l.GioBatDau, l.GioKetThuc));
+        if (conflict == null) return null;
+
+        if (conflict.MaGhepNoiNavigation.MaHuongDan == mentorId)
+        {
+            var otherStudent = conflict.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen;
+            return $"Không thể xác nhận vì khung này trùng với lịch mentor đã có với {otherStudent} ({conflict.NgayHoc:dd/MM/yyyy} {conflict.GioBatDau:HH\\:mm}-{conflict.GioKetThuc:HH\\:mm}).";
+        }
+
+        return $"Không thể xác nhận vì khung này trùng với lịch học khác của sinh viên ({conflict.NgayHoc:dd/MM/yyyy} {conflict.GioBatDau:HH\\:mm}-{conflict.GioKetThuc:HH\\:mm}).";
+    }
+
+    private static bool IsInsideSharedAvailability(LichHoc session)
+    {
+        var match = session.MaGhepNoiNavigation;
+        var thu = session.NgayHoc.DayOfWeek == DayOfWeek.Sunday ? 8 : (int)session.NgayHoc.DayOfWeek + 1;
+        var studentSlots = match.MaYeuCauNavigation.MaSinhVienNavigation.MaTaiKhoanNavigation.LichRanhs.Where(l => l.Thu == thu);
+        var mentorSlots = match.MaHuongDanNavigation.MaTaiKhoanNavigation.LichRanhs.Where(l => l.Thu == thu);
+
+        return studentSlots.Any(student => mentorSlots.Any(mentor =>
+        {
+            var sharedStart = student.GioBatDau > mentor.GioBatDau ? student.GioBatDau : mentor.GioBatDau;
+            var sharedEnd = student.GioKetThuc < mentor.GioKetThuc ? student.GioKetThuc : mentor.GioKetThuc;
+            return session.GioBatDau >= sharedStart && session.GioKetThuc <= sharedEnd;
+        }));
+    }
+
+    private void AddStudentNotification(LichHoc session, string title, string message)
+    {
+        _context.ThongBaos.Add(new ThongBao
+        {
+            MaTaiKhoan = session.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVienNavigation.MaTaiKhoan,
+            TieuDe = title,
+            NoiDung = message,
+            LoaiThongBao = "LichHoc",
+            DaDoc = false,
+            NgayTao = DateTime.Now
+        });
+    }
+
+    private static bool TimeOverlaps(TimeOnly firstStart, TimeOnly firstEnd, TimeOnly secondStart, TimeOnly secondEnd)
+    {
+        return firstStart < secondEnd && secondStart < firstEnd;
+    }
+
+    private static bool IsCompletedSession(LichHoc schedule)
+    {
+        if (schedule.TrangThai == "Đã học" || schedule.TrangThai == "Đã hoàn thành" || schedule.BaoCaoBuoiHoc != null)
+        {
+            return true;
+        }
+
+        if (schedule.TrangThai != "Sắp diễn ra" && schedule.TrangThai != "Đã lên lịch")
+        {
+            return false;
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        if (schedule.NgayHoc < today) return true;
+        if (schedule.NgayHoc > today) return false;
+        return schedule.GioKetThuc <= TimeOnly.FromDateTime(DateTime.Now);
+    }
+
     private async Task UpdateStudyHistoryAsync(GhepNoiHocTap match)
     {
         var completedSessions = match.LichHocs
-            .Where(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null)
+            .Where(IsCompletedSession)
             .OrderBy(l => l.NgayHoc)
             .ThenBy(l => l.GioBatDau)
             .ToList();
@@ -456,13 +573,25 @@ public class MentorController : RoleProtectedController
             }));
 
         notifications.AddRange(sessions
+            .Where(l => l.TrangThai == "Chờ mentor xác nhận")
+            .Take(3)
+            .Select(l => new DashboardNotificationViewModel
+            {
+                Title = "Lịch học cần xác nhận",
+                Message = $"{l.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen} đề xuất {l.NgayHoc:dd/MM} {l.GioBatDau:HH\\:mm}-{l.GioKetThuc:HH\\:mm}.",
+                Url = "/Mentor#lich-hoc",
+                Tone = "orange"
+            }));
+
+        notifications.AddRange(sessions
             .Where(l => l.NgayHoc >= today && l.TrangThai != "Đã học" && l.TrangThai != "Đã hoàn thành")
+            .Where(l => l.TrangThai != "Chờ mentor xác nhận" && l.TrangThai != "Mentor từ chối lịch")
             .Take(3)
             .Select(l => new DashboardNotificationViewModel
             {
                 Title = "Lịch dạy sắp tới",
                 Message = $"{l.NgayHoc:dd/MM} {l.GioBatDau:HH\\:mm} với {l.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen}.",
-                Url = l.BaoCaoBuoiHoc == null ? $"/Mentor/BaoCao/{l.MaLichHoc}" : "/Mentor",
+                Url = "/Mentor#lich-hoc",
                 Tone = "blue"
             }));
 
@@ -489,16 +618,12 @@ public class MentorController : RoleProtectedController
         var averageRating = reviewCount == 0 ? 0m : Math.Round((decimal)ratings.Average(), 2);
         var completedSessions = mentor.GhepNoiHocTaps
             .SelectMany(g => g.LichHocs)
-            .Count(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
-        var reportCount = mentor.GhepNoiHocTaps
-            .SelectMany(g => g.LichHocs)
-            .Count(l => l.BaoCaoBuoiHoc != null);
+            .Count(IsCompletedSession);
 
-        var ratingScore = reviewCount == 0 ? 0m : averageRating / 5m * 6m;
+        var ratingScore = reviewCount == 0 ? 0m : averageRating / 5m * 7m;
         var sessionScore = Math.Min(completedSessions, 30) / 30m * 2m;
-        var reportScore = completedSessions == 0 ? 0m : Math.Min(reportCount, completedSessions) / (decimal)completedSessions;
         var reviewVolumeScore = Math.Min(reviewCount, 20) / 20m;
-        var reputation = Math.Round(Math.Clamp(ratingScore + sessionScore + reportScore + reviewVolumeScore, 0m, 10m), 2);
+        var reputation = Math.Round(Math.Clamp(ratingScore + sessionScore + reviewVolumeScore, 0m, 10m), 2);
 
         return new MentorQualityMetrics(reputation, averageRating, reviewCount);
     }

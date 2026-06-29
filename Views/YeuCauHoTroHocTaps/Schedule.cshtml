@@ -1,6 +1,6 @@
 ﻿@model StudyConnect.ViewModels.ScheduleSessionViewModel
 @{
-    ViewData["Title"] = "Lên lịch học";
+    ViewData["Title"] = "Đề xuất lịch học";
     var match = ViewBag.Match as StudyConnect.Models.GhepNoiHocTap;
     var sharedSlots = ViewBag.SharedSlots as List<string> ?? [];
     var suggestedSlots = ViewBag.SuggestedSlots as List<StudyConnect.ViewModels.SharedScheduleSlotViewModel> ?? [];
@@ -15,18 +15,18 @@
         <a class="role-brand" asp-controller="SinhVien" asp-action="Index">StudyConnect</a>
         <p>Quy trình học 1-1</p>
         <a asp-controller="YeuCauHoTroHocTaps" asp-action="Index">Yêu cầu & lịch học</a>
-        <a class="active" asp-controller="YeuCauHoTroHocTaps" asp-action="Schedule" asp-route-id="@Model.MaGhepNoi">Lên lịch học</a>
+        <a class="active" asp-controller="YeuCauHoTroHocTaps" asp-action="Schedule" asp-route-id="@Model.MaGhepNoi">Đề xuất lịch học</a>
         <a asp-controller="SinhVien" asp-action="HoSo">Hồ sơ & lịch rảnh</a>
         <a asp-controller="SinhVien" asp-action="Index">Dashboard sinh viên</a>
     </aside>
 
     <section class="study-flow-main">
-        <div class="flow-breadcrumb">Học 1-1 > Lên lịch học</div>
+        <div class="flow-breadcrumb">Học 1-1 > Đề xuất lịch học</div>
 
         <header class="flow-title">
             <div>
-                <h1>Lên lịch với @mentorName</h1>
-                <p>Chọn thời gian nằm trong lịch rảnh chung. Hệ thống sẽ lưu lịch học để mentor lập báo cáo sau buổi học.</p>
+                <h1>Đề xuất lịch với @mentorName</h1>
+                <p>Chọn một hoặc nhiều thời gian nằm trong lịch rảnh chung. Buổi học chỉ chính thức sau khi mentor xác nhận.</p>
             </div>
             <a class="btn btn-light" asp-action="Details" asp-route-id="@match?.MaYeuCau">Quay lại yêu cầu</a>
         </header>
@@ -45,7 +45,7 @@
         </section>
 
         <div class="request-layout schedule-layout-wide">
-            <form asp-action="Schedule" method="post" class="flow-card request-form-card narrow-form">
+            <form asp-action="Schedule" method="post" class="flow-card request-form-card narrow-form" id="scheduleForm">
                 <input asp-for="MaGhepNoi" type="hidden" />
                 <div asp-validation-summary="ModelOnly" class="alert error"></div>
                 <small asp-validation-for="SelectedSlots" class="field-validation-error"></small>
@@ -72,14 +72,14 @@
                 <label class="request-field"><span>Link online nếu có</span><input asp-for="LinkOnline" placeholder="https://meet.google.com/..." /></label>
 
                 <div class="schedule-note-box">
-                    <strong>Lưu ý trước khi lưu lịch</strong>
-                    <p>Có thể chọn nhiều khung ở cột gợi ý. Nếu không chọn khung gợi ý nào, hệ thống sẽ lưu theo ngày và giờ bạn nhập thủ công ở trên.</p>
+                    <strong>Lưu ý trước khi gửi đề xuất</strong>
+                    <p>Có thể chọn nhiều khung ở cột gợi ý. Nếu không chọn khung gợi ý nào, hệ thống sẽ gửi đề xuất theo ngày và giờ bạn nhập thủ công ở trên.</p>
                     <p id="selectedSlotCount">Chưa chọn khung gợi ý nào.</p>
                 </div>
 
                 <div class="flow-actions">
                     <a class="btn btn-light" asp-action="Details" asp-route-id="@match?.MaYeuCau">Hủy</a>
-                    <button class="btn btn-primary" type="submit">Lưu lịch học</button>
+                    <button class="btn btn-primary" type="submit">Gửi đề xuất lịch</button>
                 </div>
             </form>
 
@@ -102,7 +102,7 @@
                                 var endValue = slot.GioKetThuc.ToString(@"hh\:mm");
                                 var slotValue = $"{dateValue}|{startValue}|{endValue}";
                                 <label class="smart-slot-choice">
-                                    <input type="checkbox" name="SelectedSlots" value="@slotValue" data-date="@dateValue" data-start="@startValue" data-end="@endValue" checked="@(Model.SelectedSlots.Contains(slotValue))" />
+                                    <input type="checkbox" name="SelectedSlots" value="@slotValue" data-date="@dateValue" data-start="@startValue" data-end="@endValue" form="scheduleForm" checked="@(Model.SelectedSlots.Contains(slotValue))" />
                                     <span>
                                         <strong>@slot.Label</strong>
                                         <em>Chọn buổi này</em>
@@ -148,10 +148,7 @@
                                         <strong>@session.GioBatDau.ToString("HH:mm") - @session.GioKetThuc.ToString("HH:mm")</strong>
                                         <small>@session.HinhThuc - @session.TrangThai</small>
                                     </div>
-                                    @if (session.BaoCaoBuoiHoc != null)
-                                    {
-                                        <span>Đã báo cáo</span>
-                                    }
+                                    <span>@session.TrangThai</span>
                                 </article>
                             }
                         </div>

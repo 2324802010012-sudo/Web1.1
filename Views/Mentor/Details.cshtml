@@ -70,14 +70,7 @@
                             <article>
                                 <time>@session.NgayHoc.ToString("dd/MM")</time>
                                 <div><strong>@session.GioBatDau.ToString("HH:mm") - @session.GioKetThuc.ToString("HH:mm")</strong><small>@session.HinhThuc - @session.TrangThai</small></div>
-                                @if (session.BaoCaoBuoiHoc == null)
-                                {
-                                    <a asp-action="BaoCao" asp-route-id="@session.MaLichHoc">Báo cáo</a>
-                                }
-                                else
-                                {
-                                    <span>Đã báo cáo</span>
-                                }
+                                <span>@session.TrangThai</span>
                             </article>
                         }
                     }

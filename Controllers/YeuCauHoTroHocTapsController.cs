@@ -53,14 +53,14 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
             .Where(l => l.NgayHoc >= today && l.TrangThai != "Đã học" && l.TrangThai != "Đã hoàn thành")
             .Take(6)
             .ToList();
-        ViewBag.CompletedScheduleCount = schedules.Count(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
+        ViewBag.CompletedScheduleCount = schedules.Count(IsCompletedSession);
         ViewBag.WaitingScheduleCount = requests
             .SelectMany(y => y.GhepNoiHocTaps)
             .Count(g => (g.TrangThai == "Mentor chấp nhận" || g.TrangThai == "Mentor đã chấp nhận" || g.TrangThai == "Đã lên lịch") && !g.LichHocs.Any());
-        ViewBag.WaitingReportCount = schedules.Count(l => l.NgayHoc < today && l.BaoCaoBuoiHoc == null);
+        ViewBag.WaitingReportCount = 0;
         ViewBag.WaitingReviewCount = requests
             .SelectMany(y => y.GhepNoiHocTaps)
-            .Count(g => g.LichHocs.Any(l => l.BaoCaoBuoiHoc != null) && !g.DanhGiaHuongDans.Any());
+            .Count(g => g.LichHocs.Any(IsCompletedSession) && !g.DanhGiaHuongDans.Any());
 
         return View(requests);
     }
@@ -261,10 +261,10 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
             return RedirectToAction(nameof(Details), new { id = match.MaYeuCau });
         }
 
-        var suggestedSlots = BuildSuggestedSlots(match);
+        var suggestedSlots = await BuildSuggestedSlotsAsync(match);
         if (suggestedSlots.Count == 0)
         {
-            TempData["SuccessMessage"] = "Chưa có lịch rảnh chung giữa bạn và mentor. Vui lòng cập nhật lịch rảnh hoặc trao đổi để mentor cập nhật lịch trước khi lên lịch học.";
+            TempData["SuccessMessage"] = "Chưa có khung lịch rảnh chung khả dụng giữa bạn và mentor. Vui lòng cập nhật lịch rảnh hoặc chọn thêm khung giờ khác.";
             return RedirectToAction(nameof(Details), new { id = match.MaYeuCau });
         }
 
@@ -343,11 +343,12 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         {
             ViewBag.Match = match;
             ViewBag.SharedSlots = sharedSlots;
-            ViewBag.SuggestedSlots = BuildSuggestedSlots(match);
+            ViewBag.SuggestedSlots = await BuildSuggestedSlotsAsync(match);
             return View(model);
         }
 
         var existingKeys = match.LichHocs
+            .Where(IsBlockingScheduleStatus)
             .Select(l => $"{l.NgayHoc:yyyy-MM-dd}|{l.GioBatDau:HH\\:mm}|{l.GioKetThuc:HH\\:mm}")
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -361,32 +362,74 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
             ModelState.AddModelError(nameof(model.SelectedSlots), "Các khung đã chọn đã tồn tại trong lịch học.");
             ViewBag.Match = match;
             ViewBag.SharedSlots = sharedSlots;
-            ViewBag.SuggestedSlots = BuildSuggestedSlots(match);
+            ViewBag.SuggestedSlots = await BuildSuggestedSlotsAsync(match);
+            return View(model);
+        }
+
+        var conflictMessages = await FindScheduleConflictsAsync(match, newSlots);
+        if (conflictMessages.Count > 0)
+        {
+            foreach (var message in conflictMessages)
+            {
+                ModelState.AddModelError(nameof(model.SelectedSlots), message);
+            }
+
+            ViewBag.Match = match;
+            ViewBag.SharedSlots = sharedSlots;
+            ViewBag.SuggestedSlots = await BuildSuggestedSlotsAsync(match);
             return View(model);
         }
 
         foreach (var slot in newSlots)
         {
-            _context.LichHocs.Add(new LichHoc
+            var date = DateOnly.FromDateTime(slot.NgayHoc);
+            var start = TimeOnly.FromTimeSpan(slot.GioBatDau);
+            var end = TimeOnly.FromTimeSpan(slot.GioKetThuc);
+            var reusableRejectedSchedule = match.LichHocs.FirstOrDefault(l =>
+                l.NgayHoc == date
+                && l.GioBatDau == start
+                && l.GioKetThuc == end
+                && !IsBlockingScheduleStatus(l));
+
+            if (reusableRejectedSchedule != null)
             {
-                MaGhepNoi = match.MaGhepNoi,
-                NgayHoc = DateOnly.FromDateTime(slot.NgayHoc),
-                GioBatDau = TimeOnly.FromTimeSpan(slot.GioBatDau),
-                GioKetThuc = TimeOnly.FromTimeSpan(slot.GioKetThuc),
-                HinhThuc = model.HinhThuc,
-                DiaDiem = string.IsNullOrWhiteSpace(model.DiaDiem) ? null : model.DiaDiem.Trim(),
-                LinkOnline = string.IsNullOrWhiteSpace(model.LinkOnline) ? null : model.LinkOnline.Trim(),
-                TrangThai = "Sắp diễn ra"
-            });
+                reusableRejectedSchedule.HinhThuc = model.HinhThuc;
+                reusableRejectedSchedule.DiaDiem = string.IsNullOrWhiteSpace(model.DiaDiem) ? null : model.DiaDiem.Trim();
+                reusableRejectedSchedule.LinkOnline = string.IsNullOrWhiteSpace(model.LinkOnline) ? null : model.LinkOnline.Trim();
+                reusableRejectedSchedule.TrangThai = "Chờ mentor xác nhận";
+            }
+            else
+            {
+                _context.LichHocs.Add(new LichHoc
+                {
+                    MaGhepNoi = match.MaGhepNoi,
+                    NgayHoc = date,
+                    GioBatDau = start,
+                    GioKetThuc = end,
+                    HinhThuc = model.HinhThuc,
+                    DiaDiem = string.IsNullOrWhiteSpace(model.DiaDiem) ? null : model.DiaDiem.Trim(),
+                    LinkOnline = string.IsNullOrWhiteSpace(model.LinkOnline) ? null : model.LinkOnline.Trim(),
+                    TrangThai = "Chờ mentor xác nhận"
+                });
+            }
         }
 
-        match.TrangThai = "Đã lên lịch";
-        match.MaYeuCauNavigation.TrangThai = "Đang học";
+        match.TrangThai = "Chờ xác nhận lịch";
+        match.MaYeuCauNavigation.TrangThai = "Đã ghép";
+        _context.ThongBaos.Add(new ThongBao
+        {
+            MaTaiKhoan = match.MaHuongDanNavigation.MaTaiKhoan,
+            TieuDe = "Sinh viên đề xuất lịch học 1-1",
+            NoiDung = $"{match.MaYeuCauNavigation.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen} đã chọn {newSlots.Count} khung lịch rảnh chung. Vui lòng xác nhận hoặc từ chối từng buổi học.",
+            LoaiThongBao = "XacNhanLichHoc",
+            DaDoc = false,
+            NgayTao = DateTime.Now
+        });
         await _context.SaveChangesAsync();
 
         TempData["SuccessMessage"] = newSlots.Count == 1
-            ? "Đã lên lịch học cho ghép nối. Sau buổi học, mentor sẽ lập báo cáo để bạn đánh giá."
-            : $"Đã lên {newSlots.Count} buổi học cho ghép nối. Mentor sẽ thấy các lịch này trong dashboard.";
+            ? "Đã gửi đề xuất lịch học tới mentor. Buổi học chỉ được tạo chính thức sau khi mentor xác nhận."
+            : $"Đã gửi {newSlots.Count} đề xuất lịch học tới mentor. Mentor sẽ xác nhận từng buổi trong dashboard.";
         return RedirectToAction(nameof(Details), new { id = match.MaYeuCau });
     }
 
@@ -399,7 +442,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         if (match == null) return NotFound();
         if (!CanStudentEvaluate(match))
         {
-            TempData["SuccessMessage"] = "Bạn chỉ có thể đánh giá sau khi mentor lập báo cáo buổi học.";
+            TempData["SuccessMessage"] = "Bạn chỉ có thể đánh giá sau khi có buổi học đã diễn ra.";
             return RedirectToAction(nameof(Details), new { id = match.MaYeuCau });
         }
 
@@ -418,22 +461,22 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         if (match == null) return NotFound();
         if (!CanStudentEvaluate(match))
         {
-            TempData["SuccessMessage"] = "Bạn chỉ có thể đánh giá sau khi mentor lập báo cáo buổi học.";
+            TempData["SuccessMessage"] = "Bạn chỉ có thể đánh giá sau khi có buổi học đã diễn ra.";
             return RedirectToAction(nameof(Details), new { id = match.MaYeuCau });
         }
 
         var sinhVien = await CurrentSinhVienAsync();
         if (sinhVien == null) return RedirectToAction("HoSo", "SinhVien");
 
-        var reportedSession = match.LichHocs
-            .Where(l => l.BaoCaoBuoiHoc != null)
+        var completedSession = match.LichHocs
+            .Where(IsCompletedSession)
             .OrderByDescending(l => l.NgayHoc)
             .ThenByDescending(l => l.GioBatDau)
             .FirstOrDefault();
 
-        if (reportedSession == null)
+        if (completedSession == null)
         {
-            ModelState.AddModelError(string.Empty, "Chưa có buổi học nào có báo cáo để đánh giá.");
+            ModelState.AddModelError(string.Empty, "Chưa có buổi học nào đã diễn ra để đánh giá.");
         }
 
         if (await _context.DanhGiaHuongDans.AnyAsync(d => d.MaGhepNoi == model.MaGhepNoi && d.MaSinhVien == sinhVien.MaSinhVien))
@@ -450,7 +493,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         _context.DanhGiaHuongDans.Add(new DanhGiaHuongDan
         {
             MaGhepNoi = match.MaGhepNoi,
-            MaLichHoc = reportedSession!.MaLichHoc,
+            MaLichHoc = completedSession!.MaLichHoc,
             MaHuongDan = match.MaHuongDan,
             MaSinhVien = sinhVien.MaSinhVien,
             SoSao = model.SoSao,
@@ -460,6 +503,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
 
         match.TrangThai = "Hoàn thành";
         match.MaYeuCauNavigation.TrangThai = "Hoàn thành";
+        completedSession!.TrangThai = "Đã học";
         await _context.SaveChangesAsync();
         await RecalculateMentorRatingAsync(match.MaHuongDan);
 
@@ -529,12 +573,33 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
 
     private static bool CanStudentSchedule(GhepNoiHocTap match)
     {
-        return match.TrangThai == "Mentor chấp nhận" || match.TrangThai == "Mentor đã chấp nhận" || match.TrangThai == "Đã lên lịch";
+        return match.TrangThai == "Mentor chấp nhận"
+            || match.TrangThai == "Mentor đã chấp nhận"
+            || match.TrangThai == "Chờ xác nhận lịch"
+            || match.TrangThai == "Đã lên lịch";
     }
 
     private static bool CanStudentEvaluate(GhepNoiHocTap match)
     {
-        return match.LichHocs.Any(l => l.BaoCaoBuoiHoc != null) && !match.DanhGiaHuongDans.Any();
+        return match.LichHocs.Any(IsCompletedSession) && !match.DanhGiaHuongDans.Any();
+    }
+
+    private static bool IsCompletedSession(LichHoc schedule)
+    {
+        if (schedule.TrangThai == "Đã học" || schedule.TrangThai == "Đã hoàn thành" || schedule.BaoCaoBuoiHoc != null)
+        {
+            return true;
+        }
+
+        if (schedule.TrangThai != "Sắp diễn ra" && schedule.TrangThai != "Đã lên lịch")
+        {
+            return false;
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        if (schedule.NgayHoc < today) return true;
+        if (schedule.NgayHoc > today) return false;
+        return schedule.GioKetThuc <= TimeOnly.FromDateTime(DateTime.Now);
     }
 
     private async Task<IActionResult?> RequireCompletedStudentProfileAsync()
@@ -596,13 +661,13 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
                 .ThenInclude(g => g.LichHocs)
                     .ThenInclude(l => l.BaoCaoBuoiHoc)
             .Include(m => m.DanhGiaHuongDans)
-            .FirstOrDefaultAsync(m => m.MaHuongDan == mentorId.Value && (m.TrangThai == null || m.TrangThai == "Hoạt động"));
+            .FirstOrDefaultAsync(m => m.MaHuongDan == mentorId.Value && m.TrangThai != "Tạm dừng" && m.TrangThai != "Bị khóa");
     }
 
     private async Task PopulateCreateModelAsync(YeuCauHoTroCreateViewModel model)
     {
         var linhVuc = await _context.LinhVucHocTaps
-            .Where(l => l.TrangThai == null || l.TrangThai == "Hoạt động")
+            .Where(l => l.TrangThai == null || (l.TrangThai != "Tạm ẩn" && l.TrangThai != "Táº¡m áº©n"))
             .OrderBy(l => l.TenLinhVuc)
             .ToListAsync();
 
@@ -638,7 +703,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
                 .ThenInclude(g => g.LichHocs)
                     .ThenInclude(l => l.BaoCaoBuoiHoc)
             .Include(m => m.DanhGiaHuongDans)
-            .Where(m => m.TrangThai == null || m.TrangThai == "Hoạt động")
+            .Where(m => m.TrangThai == null || (m.TrangThai != "Tạm dừng" && m.TrangThai != "Bị khóa"))
             .Where(m => m.ChuyenMonNguoiHuongDans.Any(c => c.MaLinhVuc == request.MaLinhVuc))
             .ToListAsync();
 
@@ -672,7 +737,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
                 .ThenInclude(g => g.LichHocs)
                     .ThenInclude(l => l.BaoCaoBuoiHoc)
             .Include(m => m.DanhGiaHuongDans)
-            .Where(m => m.TrangThai == null || m.TrangThai == "Hoạt động")
+            .Where(m => m.TrangThai == null || (m.TrangThai != "Tạm dừng" && m.TrangThai != "Bị khóa"))
             .Where(m => m.ChuyenMonNguoiHuongDans.Any(c => c.MaLinhVuc == maLinhVuc))
             .ToListAsync();
 
@@ -747,7 +812,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
 
         var completedSessions = mentor.GhepNoiHocTaps
             .SelectMany(g => g.LichHocs)
-            .Count(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
+            .Count(IsCompletedSession);
         if (completedSessions > 0) reasons.Add("Có lịch sử hỗ trợ học tập");
 
         var keywordDenominator = Math.Min(Math.Max(keywords.Count, 1), 10);
@@ -851,6 +916,38 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
             .ToList();
     }
 
+    private async Task<List<SharedScheduleSlotViewModel>> BuildSuggestedSlotsAsync(GhepNoiHocTap match)
+    {
+        var slots = BuildSuggestedSlots(match);
+        if (slots.Count == 0) return slots;
+
+        var studentId = match.MaYeuCauNavigation.MaSinhVien;
+        var mentorId = match.MaHuongDan;
+        var dates = slots.Select(s => DateOnly.FromDateTime(s.NgayHoc)).Distinct().ToList();
+
+        var existingSchedules = await _context.LichHocs
+            .Include(l => l.MaGhepNoiNavigation)
+                .ThenInclude(g => g.MaYeuCauNavigation)
+            .Where(l => dates.Contains(l.NgayHoc))
+            .Where(l => l.TrangThai != "Mentor từ chối lịch" && l.TrangThai != "Đã hủy" && l.TrangThai != "Đã hủy lịch")
+            .Where(l => l.MaGhepNoiNavigation.MaHuongDan == mentorId
+                || l.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVien == studentId)
+            .ToListAsync();
+
+        return slots
+            .Where(slot =>
+            {
+                var date = DateOnly.FromDateTime(slot.NgayHoc);
+                var start = TimeOnly.FromTimeSpan(slot.GioBatDau);
+                var end = TimeOnly.FromTimeSpan(slot.GioKetThuc);
+                return !existingSchedules.Any(schedule =>
+                    schedule.NgayHoc == date
+                    && TimeOverlaps(start, end, schedule.GioBatDau, schedule.GioKetThuc));
+            })
+            .Take(10)
+            .ToList();
+    }
+
     private static bool IsInsideSharedAvailability(GhepNoiHocTap match, DateTime ngayHoc, TimeSpan gioBatDau, TimeSpan gioKetThuc)
     {
         var thu = ToStudyDay(ngayHoc);
@@ -865,6 +962,88 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
             var sharedEnd = student.GioKetThuc < mentor.GioKetThuc ? student.GioKetThuc : mentor.GioKetThuc;
             return start >= sharedStart && end <= sharedEnd;
         }));
+    }
+
+    private async Task<List<string>> FindScheduleConflictsAsync(
+        GhepNoiHocTap match,
+        List<(DateTime NgayHoc, TimeSpan GioBatDau, TimeSpan GioKetThuc)> selectedSlots)
+    {
+        var messages = new List<string>();
+
+        for (var i = 0; i < selectedSlots.Count; i++)
+        {
+            for (var j = i + 1; j < selectedSlots.Count; j++)
+            {
+                var first = selectedSlots[i];
+                var second = selectedSlots[j];
+                if (first.NgayHoc.Date == second.NgayHoc.Date && TimeOverlaps(first.GioBatDau, first.GioKetThuc, second.GioBatDau, second.GioKetThuc))
+                {
+                    messages.Add($"Hai khung bạn chọn bị trùng nhau trong ngày {first.NgayHoc:dd/MM/yyyy}.");
+                }
+            }
+        }
+
+        var studentId = match.MaYeuCauNavigation.MaSinhVien;
+        var mentorId = match.MaHuongDan;
+        var dateValues = selectedSlots.Select(s => DateOnly.FromDateTime(s.NgayHoc)).Distinct().ToList();
+
+        var existingSchedules = await _context.LichHocs
+            .Include(l => l.MaGhepNoiNavigation)
+                .ThenInclude(g => g.MaYeuCauNavigation)
+                    .ThenInclude(y => y.MaSinhVienNavigation)
+                        .ThenInclude(s => s.MaTaiKhoanNavigation)
+            .Where(l => dateValues.Contains(l.NgayHoc))
+            .Where(l => l.TrangThai != "Mentor từ chối lịch" && l.TrangThai != "Đã hủy" && l.TrangThai != "Đã hủy lịch")
+            .Where(l => l.MaGhepNoiNavigation.MaHuongDan == mentorId
+                || l.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVien == studentId)
+            .ToListAsync();
+
+        foreach (var slot in selectedSlots)
+        {
+            var date = DateOnly.FromDateTime(slot.NgayHoc);
+            var start = TimeOnly.FromTimeSpan(slot.GioBatDau);
+            var end = TimeOnly.FromTimeSpan(slot.GioKetThuc);
+            var conflicts = existingSchedules
+                .Where(l => l.NgayHoc == date)
+                .Where(l => TimeOverlaps(start, end, l.GioBatDau, l.GioKetThuc))
+                .ToList();
+
+            foreach (var conflict in conflicts)
+            {
+                if (conflict.MaGhepNoiNavigation.MaHuongDan == mentorId && conflict.MaGhepNoi != match.MaGhepNoi)
+                {
+                    var otherStudent = conflict.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVienNavigation.MaTaiKhoanNavigation.HoTen;
+                    messages.Add($"Khung {slot.NgayHoc:dd/MM/yyyy} {slot.GioBatDau:hh\\:mm}-{slot.GioKetThuc:hh\\:mm} trùng với lịch mentor đã nhận với {otherStudent} ({conflict.GioBatDau:HH\\:mm}-{conflict.GioKetThuc:HH\\:mm}).");
+                }
+                else if (conflict.MaGhepNoiNavigation.MaYeuCauNavigation.MaSinhVien == studentId && conflict.MaGhepNoi != match.MaGhepNoi)
+                {
+                    messages.Add($"Khung {slot.NgayHoc:dd/MM/yyyy} {slot.GioBatDau:hh\\:mm}-{slot.GioKetThuc:hh\\:mm} trùng với lịch học khác của bạn ({conflict.GioBatDau:HH\\:mm}-{conflict.GioKetThuc:HH\\:mm}).");
+                }
+                else if (conflict.MaGhepNoi == match.MaGhepNoi)
+                {
+                    messages.Add($"Khung {slot.NgayHoc:dd/MM/yyyy} {slot.GioBatDau:hh\\:mm}-{slot.GioKetThuc:hh\\:mm} đã có trong yêu cầu này.");
+                }
+            }
+        }
+
+        return messages.Distinct().ToList();
+    }
+
+    private static bool IsBlockingScheduleStatus(LichHoc schedule)
+    {
+        return schedule.TrangThai != "Mentor từ chối lịch"
+            && schedule.TrangThai != "Đã hủy"
+            && schedule.TrangThai != "Đã hủy lịch";
+    }
+
+    private static bool TimeOverlaps(TimeOnly firstStart, TimeOnly firstEnd, TimeOnly secondStart, TimeOnly secondEnd)
+    {
+        return firstStart < secondEnd && secondStart < firstEnd;
+    }
+
+    private static bool TimeOverlaps(TimeSpan firstStart, TimeSpan firstEnd, TimeSpan secondStart, TimeSpan secondEnd)
+    {
+        return firstStart < secondEnd && secondStart < firstEnd;
     }
 
     private static List<(DateTime NgayHoc, TimeSpan GioBatDau, TimeSpan GioKetThuc)> ParseSelectedSlots(IEnumerable<string>? values)
@@ -932,7 +1111,7 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
     {
         "can", "cần", "hoc", "học", "ho", "hỗ", "tro", "trợ", "mentor", "minh", "mình",
         "ban", "bạn", "voi", "với", "ve", "về", "cho", "cac", "các", "va", "và", "de", "để",
-        "dang", "đang", "phan", "phần", "noi", "nội", "dung", "muc", "mức", "do", "độ"
+        "dang", "đang", "phan", "phần", "noi", "nội", "dung", "muc", "mục", "do", "độ"
     };
 
     private sealed record MentorFitScore(
@@ -965,16 +1144,12 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         var averageRating = reviewCount == 0 ? 0m : Math.Round((decimal)ratings.Average(), 2);
         var completedSessions = mentor.GhepNoiHocTaps
             .SelectMany(g => g.LichHocs)
-            .Count(l => l.TrangThai == "Đã học" || l.TrangThai == "Đã hoàn thành" || l.BaoCaoBuoiHoc != null);
-        var reportCount = mentor.GhepNoiHocTaps
-            .SelectMany(g => g.LichHocs)
-            .Count(l => l.BaoCaoBuoiHoc != null);
+            .Count(IsCompletedSession);
 
-        var ratingScore = reviewCount == 0 ? 0m : averageRating / 5m * 6m;
+        var ratingScore = reviewCount == 0 ? 0m : averageRating / 5m * 7m;
         var sessionScore = Math.Min(completedSessions, 30) / 30m * 2m;
-        var reportScore = completedSessions == 0 ? 0m : Math.Min(reportCount, completedSessions) / (decimal)completedSessions;
         var reviewVolumeScore = Math.Min(reviewCount, 20) / 20m;
-        var reputation = Math.Round(Math.Clamp(ratingScore + sessionScore + reportScore + reviewVolumeScore, 0m, 10m), 2);
+        var reputation = Math.Round(Math.Clamp(ratingScore + sessionScore + reviewVolumeScore, 0m, 10m), 2);
 
         return new MentorQualityMetrics(reputation, averageRating, reviewCount);
     }
@@ -1018,3 +1193,4 @@ public class YeuCauHoTroHocTapsController : RoleProtectedController
         return string.Join(Environment.NewLine, parts);
     }
 }
+

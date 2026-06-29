@@ -37,7 +37,7 @@
             <article><small>Hồ sơ chờ duyệt</small><strong>@ViewBag.HoSoChoDuyet</strong></article>
             <article><small>Mentor đang quản lý</small><strong>@ViewBag.Mentor</strong></article>
             <article><small>Yêu cầu học tập</small><strong>@ViewBag.YeuCau</strong></article>
-            <article><small>Báo cáo buổi học</small><strong>@ViewBag.BaoCao</strong></article>
+            <article><small>Buổi học hoàn thành</small><strong>@ViewBag.BuoiHocHoanThanh</strong></article>
             <article><small>Đánh giá</small><strong>@ViewBag.DanhGia</strong></article>
         </section>
 
@@ -107,7 +107,7 @@
                 <div>
                     <p class="eyebrow">Quản lý bởi cố vấn</p>
                     <h2>Danh sách toàn bộ mentor</h2>
-                    <span class="panel-note">Điểm uy tín tự động: 60% đánh giá thật, 20% buổi hoàn thành, 10% báo cáo, 10% số lượt đánh giá.</span>
+                    <span class="panel-note">Điểm uy tín tự động: 70% đánh giá thật, 20% buổi hoàn thành, 10% số lượt đánh giá.</span>
                 </div>
                 <strong>@mentors.Count mentor</strong>
             </div>
@@ -136,12 +136,8 @@
                             <span class="advisor-quality-box">
                                 <b>Hạng #@mentor.ThuHang • Uy tín @mentor.DiemUyTin.ToString("0.00")</b>
                                 <b>@mentor.DiemDanhGia.ToString("0.0") sao (@mentor.SoLuotDanhGia đánh giá)</b>
-                                <small>@mentor.SoBuoiHoanThanh buổi hoàn thành • @mentor.SoBaoCao báo cáo</small>
+                                <small>@mentor.SoBuoiHoanThanh buổi hoàn thành • @mentor.SoLuotDanhGia lượt đánh giá</small>
                                 <small class="reputation-formula">@mentor.CongThucUyTin</small>
-                                @if (mentor.BaoCaoChoDanhGia > 0)
-                                {
-                                    <small>@mentor.BaoCaoChoDanhGia báo cáo chờ sinh viên đánh giá</small>
-                                }
                             </span>
                             <div class="advisor-mentor-actions">
                                 <select name="trangThai">

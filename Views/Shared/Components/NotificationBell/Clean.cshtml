@@ -1,0 +1,48 @@
+@model StudyConnect.ViewModels.NotificationBellViewModel
+
+<details class="global-notification-dock">
+    <summary class="global-notification-button" aria-label="Thông báo hệ thống">
+        <span></span>
+        @if (Model.UnreadCount > 0)
+        {
+            <b>@(Model.UnreadCount > 99 ? "99+" : Model.UnreadCount)</b>
+        }
+    </summary>
+    <div class="global-notification-panel">
+        <div class="global-notification-head">
+            <div>
+                <strong>Thông báo</strong>
+                <small>@Model.UnreadCount chưa đọc</small>
+            </div>
+            @if (Model.UnreadCount > 0)
+            {
+                <form asp-controller="ThongBaos" asp-action="MarkAllRead" method="post">
+                    <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                    <button type="submit">Đã đọc</button>
+                </form>
+            }
+        </div>
+
+        @if (Model.Items.Count == 0)
+        {
+            <article class="empty">
+                <strong>Chưa có thông báo</strong>
+                <p>Các cập nhật về lịch học, ghép nối, mentor và CLB sẽ xuất hiện tại đây.</p>
+            </article>
+        }
+        else
+        {
+            @foreach (var item in Model.Items)
+            {
+                <article class="@item.Tone @(item.IsUnread ? "unread" : "")">
+                    <strong>@item.Title</strong>
+                    @if (!string.IsNullOrWhiteSpace(item.Message))
+                    {
+                        <p>@item.Message</p>
+                    }
+                    <small>@item.TimeText</small>
+                </article>
+            }
+        }
+    </div>
+</details>
